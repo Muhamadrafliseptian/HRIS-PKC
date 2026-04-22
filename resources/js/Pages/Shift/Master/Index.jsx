@@ -9,11 +9,11 @@ import {
     changeStatusMasterShifts,
     readMasterShifts,
 } from "../../../services/api/shift/shift"
-import { FormSelect } from "../../../Components/Form";
+import { FormSelect } from "../../../components/Form";
 import Update from "./Modals/Update";
 import Detail from "./Modals/Detail";
 import Swal from "sweetalert2";
-import { showError, showSuccess } from "../../../Components/Alert";
+import { showError, showSuccess } from "../../../components/Alert";
 
 function Index() {
     const [datas, setDatas] = useState([]);

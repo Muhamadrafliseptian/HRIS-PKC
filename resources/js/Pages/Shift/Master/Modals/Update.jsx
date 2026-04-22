@@ -1,6 +1,6 @@
-import { showError, showSuccess } from "@/Components/Alert";
-import { DangerButton, PrimaryButton } from "@/Components/Button";
-import { FormSelect, FormText, FormTimePicker } from "@/Components/Form";
+import { showError, showSuccess } from "../../../../components/Alert";
+import { DangerButton, PrimaryButton } from "../../../../components/Button";
+import { FormSelect, FormText, FormTimePicker } from "../../../../components/Form";
 import { updateMasterShifts } from "../../../../services/api/shift/shift";
 import { Modal, Checkbox, Col, Form, List } from "antd";
 import { usePage } from "@inertiajs/react";
