@@ -1,6 +1,6 @@
-import { showError, showSuccess } from "@/Components/Alert";
-import { DangerButton, PrimaryButton } from "@/Components/Button";
-import { FormSelect, FormText, FormTimePicker } from "@/Components/Form";
+import { showError, showSuccess } from "../../../../components/Alert";
+import { DangerButton, PrimaryButton } from "../../../../components/Button";
+import { FormSelect, FormText, FormTimePicker } from "../../../../components/Form";
 import {
     createMasterShifts,
     readJobtitles,
