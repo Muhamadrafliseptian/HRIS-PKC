@@ -16,6 +16,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ShiftCategorySeeder::class,
             ShiftSeeder::class,
+            BiometricCategorySeeder::class,
+            BiometricDeviceSeeder::class,
+            EmployeeServiceSeeder::class,
+            EmployeeStatusSeeder::class,
+            BranchConfigSeeder::class,
+            BranchSeeder::class,
         ]);
     }
 }
