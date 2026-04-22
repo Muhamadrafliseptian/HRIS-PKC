@@ -15,37 +15,37 @@ def parse_periode(periode: str):
 
 
 def get_attendance(ip: str, port: int, periode: str = None):
+    try:
+        START_DATE = None
+        END_DATE = None
 
-    START_DATE = None
-    END_DATE = None
+        if periode:
+            START_DATE, END_DATE = parse_periode(periode)
 
-    if periode:
-        START_DATE, END_DATE = parse_periode(periode)
+        zk = ZK(ip, port=port, timeout=20, password=0)
+        conn = zk.connect()
 
-    zk = ZK(ip, port=port, timeout=20, password=0)
-    conn = zk.connect()
+        attendances = conn.get_attendance()
+        result = []
 
-    attendances = conn.get_attendance()
+        for att in attendances:
+            ts = att.timestamp
 
-    result = []
+            if START_DATE and END_DATE:
+                if not (START_DATE <= ts <= END_DATE):
+                    continue
 
-    for att in attendances:
+            result.append({
+                "user_id": str(att.user_id),
+                "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
+                "status": att.status
+            })
 
-        ts = att.timestamp
+        conn.disconnect()
+        return result
 
-        if START_DATE and END_DATE:
-            if not (START_DATE <= ts <= END_DATE):
-                continue
-
-        result.append({
-            "user_id": str(att.user_id),
-            "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
-            "status": att.status
-        })
-
-    conn.disconnect()
-
-    return result
+    except Exception as e:
+        return []
 
 
 @router.get("/attendance")
