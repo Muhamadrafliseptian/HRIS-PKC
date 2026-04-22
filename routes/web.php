@@ -6,6 +6,7 @@ use App\Http\Controllers\Branch\BranchController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Devices\DevicesController;
 use App\Http\Controllers\Employee\EmployeeController;
+use App\Http\Controllers\Report\AttendanceReportController;
 use App\Http\Controllers\Shift\AssignmentShiftController;
 use App\Http\Controllers\Shift\ShiftController;
 use Illuminate\Support\Facades\Route;
@@ -47,7 +48,7 @@ Route::prefix("employee")->group(function () {
 });
 Route::prefix("manage")->group(function () {
     Route::prefix("shift")->group(function () {
-        Route::prefix("master")->group(function(){
+        Route::prefix("master")->group(function () {
             Route::get("/", [ShiftController::class, 'index']);
             Route::post("create", [ShiftController::class, 'create']);
             Route::post("read", [ShiftController::class, 'read']);
@@ -60,6 +61,19 @@ Route::prefix("manage")->group(function () {
             Route::get('/', [AssignmentShiftController::class, "index"]);
             Route::post("/read", [AssignmentShiftController::class, "read"]);
             Route::post("/create", [AssignmentShiftController::class, "create"]);
+        });
+    });
+});
+Route::prefix("report")->group(function () {
+    Route::prefix("attendance")->group(function () {
+        Route::prefix("transaction")->group(function () {
+            Route::get('/', [AttendanceReportController::class, "indexTransaction"]);
+            Route::get('preview', [AttendanceReportController::class, "preview"]);
+        });
+        Route::prefix("log")->group(function () {
+            Route::get('/', [AttendanceReportController::class, "indexLog"]);
+            Route::get('preview', [AttendanceReportController::class, "preview"]);
+            Route::post('download', [AttendanceReportController::class, "download"]);
         });
     });
 });

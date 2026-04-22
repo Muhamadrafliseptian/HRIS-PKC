@@ -23,4 +23,9 @@ class Employee extends Model
     {
         return $this->belongsTo(EmployeeStatus::class, 'employee_status', 'id');
     }
+
+    public function dtservice()
+    {
+        return $this->belongsTo(EmployeeService::class, 'employee_services', 'id');
+    }
 }

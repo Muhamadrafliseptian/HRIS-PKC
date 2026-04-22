@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\EmployeeService;
 use App\Models\EmployeeStatus;
 use Exception;
 use Inertia\Inertia;
@@ -13,8 +14,6 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 class EmployeeController extends Controller
 {
-    protected $ip = "10.31.164.173";
-    protected $port = 4370;
 
     public function index()
     {
@@ -33,6 +32,13 @@ class EmployeeController extends Controller
                 ];
             });
 
+            $service = EmployeeService::orderBy('id', 'desc')->get(['id', 'name'])->map(function ($service) {
+                return [
+                    'value' => $service->id,
+                    'label' => $service->name
+                ];
+            });
+
             $status = [
                 [
                     'value' => 1,
@@ -47,7 +53,8 @@ class EmployeeController extends Controller
             $response = [
                 'branchs' => $branchs,
                 'categories' => $category,
-                'status' => $status
+                'status' => $status,
+                'services' => $service,
             ];
 
             return Inertia::render('Employee/Index', $response);
@@ -57,14 +64,51 @@ class EmployeeController extends Controller
         }
     }
 
-    public function read()
+    public function read(Request $request)
     {
         try {
-            $data = Employee::with(['biometricUser', 'dtstatus','dtbranch','biometricUser.device.category'])->orderBy("id", 'desc')->get();
+            $query = Employee::with([
+                'biometricUser',
+                'dtstatus',
+                'dtbranch',
+                'dtservice',
+                'biometricUser.device.category'
+            ]);
+
+            if ($request->branch) {
+                $query->where('branch', $request->branch);
+            }
+
+            if ($request->employee_status) {
+                $query->where('employee_status', $request->employee_status);
+            }
+
+            if ($request->employee_services) {
+                $query->where('employee_services', $request->employee_services);
+            }
+            
+            if ($request->device_id) {
+                $query->whereHas('biometricUser.device', function ($q) use ($request) {
+                    $q->where('device_id', $request->device_id);
+                });
+            }
+
+            if ($request->search) {
+                $search = $request->search;
+
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('nrk', 'like', "%{$search}%");
+                });
+            }
+
+            $query->orderBy('name', 'asc');
+
+            $data = $query->get();
 
             return successHandler($data);
 
-        } catch (Exception $err) {
+        } catch (\Exception $err) {
             return errorHandler($err);
         }
     }
@@ -81,6 +125,7 @@ class EmployeeController extends Controller
                 new EmployeeImport(
                     $request->branch,
                     $request->employee_status,
+                    $request->employee_services,
                     $request->name,
                 ),
                 $file

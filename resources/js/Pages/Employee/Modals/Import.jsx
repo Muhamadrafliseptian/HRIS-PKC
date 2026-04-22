@@ -15,16 +15,19 @@ export default function Import(props) {
     const [loading, setLoading] = useState(false);
     const [utils, setUtils] = useState({
         branchs: [],
-        categories: []
+        categories: [],
+        services: [],
     });
     const [form, setForm] = useState({
         branch: "",
+        service: "",
         category: "",
         file: ''
     });
     const [error, setError] = useState({
         branch: "",
         category: "",
+        service: "",
         file: ''
     });
     const pages = usePage().props
@@ -35,6 +38,7 @@ export default function Import(props) {
             setUtils({
                 branchs: pages.branchs,
                 categories: pages.categories,
+                services: pages.services,
             });
         }
     }, [props]);
@@ -44,6 +48,7 @@ export default function Import(props) {
         setForm({
             branch: "",
             category: "",
+            service: "",
         })
         props.handleClose("import");
     };
@@ -61,6 +66,7 @@ export default function Import(props) {
             formData.append("file", form.file);
             formData.append("branch", form.branch);
             formData.append("employee_status", form.category);
+            formData.append("employee_services", form.service);
 
             setLoading(true);
             let response = await importEmployee(formData);
@@ -92,6 +98,22 @@ export default function Import(props) {
             >
                 <Form layout='vertical'>
                     <Row gutter={12}>
+                        <Col span={24}>
+                            <FormSelect label={"Employee Services"}
+                                options={utils.services}
+                                rules={[{ required: true }]}
+                                value={form.service}
+                                onChange={(e) =>
+                                    handleChangeForm(
+                                        "service",
+                                        e,
+                                    )
+                                }
+                                disabled={loading}
+                                search={true}
+                                error={error.category}
+                            />
+                        </Col>
                         <Col span={24}>
                             <FormSelect label={"Employee Status"}
                                 options={utils.categories}

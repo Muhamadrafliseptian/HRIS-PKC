@@ -14,25 +14,11 @@ return new class extends Migration {
             $table->id();
             $table->bigInteger('user_id')->unique(); 
             $table->bigInteger('employee_status')->nullable(); 
-            $table->string('employee_number')->nullable();
+            $table->bigInteger('employee_services')->nullable(); 
             $table->string('name')->nullable();
             $table->string('nrk')->nullable();
-            $table->string('nik')->nullable();
-            $table->string('phone', 255)->nullable();
-            $table->bigInteger('religion')->nullable();
-            $table->enum('gender', ['L', 'P'])->nullable();
-            $table->string('birth_place', 255)->nullable();
-            $table->enum('blood', ['A', 'B', 'AB', '0', '-'])->nullable();
             $table->bigInteger('branch')->nullable();
-            $table->bigInteger('klaster')->nullable();
-            $table->bigInteger('division')->nullable();
-            $table->bigInteger('job_title')->nullable();
-            $table->bigInteger('position')->nullable();
-            $table->bigInteger('dependent')->nullable();
-            $table->string('ter', 255)->nullable();
-            $table->boolean('sync')->default(0);
             $table->boolean('status')->default(1);
-        
             $table->timestamps();
         });
     }

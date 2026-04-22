@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BiometricDevice;
 use App\Models\Branch;
 use App\Models\EmployeeStatus;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -92,6 +93,7 @@ class DevicesController extends Controller
         $devices = BiometricDevice::with(['dtbranch', 'category'])->get();
 
         $results = $devices->map(function ($device) {
+
             $base = [
                 'id' => $device->id,
                 'name' => $device->name,
@@ -102,69 +104,97 @@ class DevicesController extends Controller
             ];
 
             if (!$device->ip_address || !$device->port) {
-                return array_merge($base, ['status' => 'no_config']);
+                return array_merge($base, [
+                    'status' => 'no_config',
+                    'synced' => false,
+                ]);
             }
 
             if (!$this->isReachable($device->ip_address, $device->port, 1)) {
-                return array_merge($base, ['status' => 'offline']);
+                return array_merge($base, [
+                    'status' => 'offline',
+                    'synced' => false,
+                ]);
             }
 
             try {
                 $zk = new ZKTeco($device->ip_address, $device->port);
+
                 socket_set_option($zk->_zkclient, SOL_SOCKET, SO_RCVTIMEO, [
                     'sec' => 2,
                     'usec' => 0,
                 ]);
 
                 if ($zk->connect()) {
-                    $time = $zk->getTime();
+
+                    $deviceTime = $zk->getTime();
                     $zk->disconnect();
+
                     return array_merge($base, [
                         'status' => 'online',
-                        'time' => $time,
+                        'synced' => true,
+                        'device_time' => $deviceTime,
                     ]);
                 }
 
-                return array_merge($base, ['status' => 'offline']);
+                return array_merge($base, [
+                    'status' => 'offline',
+                    'synced' => false,
+                ]);
 
-            } catch (Exception $e) {
-                return array_merge($base, ['status' => 'error']);
+            } catch (\Exception $e) {
+                return errorHandler($e);
             }
         })->values();
 
-        return successHandler($results);
+        return successHandler([
+            'status' => true,
+            'data' => $results,
+        ]);
     }
 
     public function checkDevices($id)
     {
-        $device = BiometricDevice::with(['dtbranch', 'category'])->findOrFail($id);
+        $device = BiometricDevice::with(['dtbranch', 'category'])
+            ->findOrFail($id);
 
-        $base = ['id' => $device->id];
+        $response = [
+            'id' => $device->id,
+            'device_name' => $device->name,
+            'ip' => $device->ip_address,
+            'port' => $device->port,
+            'branch' => $device->dtbranch?->name,
+            'category' => $device->category?->name,
+        ];
 
         if (!$this->isReachable($device->ip_address, $device->port, 1)) {
-            return successHandler(array_merge($base, ['status' => 'offline']));
+            return successHandler(array_merge($response, [
+                'status' => 'offline',
+            ]));
         }
 
         try {
             $zk = new ZKTeco($device->ip_address, $device->port);
+
             socket_set_option($zk->_zkclient, SOL_SOCKET, SO_RCVTIMEO, [
                 'sec' => 2,
                 'usec' => 0,
             ]);
 
-            if ($zk->connect()) {
-                $time = $zk->getTime();
-                $zk->disconnect();
-                return successHandler(array_merge($base, [
-                    'status' => 'online',
-                    'time' => $time,
+            if (!$zk->connect()) {
+                return successHandler(array_merge($response, [
+                    'status' => 'offline',
                 ]));
             }
 
-            return successHandler(array_merge($base, ['status' => 'offline']));
+            $zk->disconnect();
 
-        } catch (Exception $e) {
-            return successHandler(array_merge($base, ['status' => 'error']));
+            return successHandler(array_merge($response, [
+                'status' => 'online',
+            ]));
+
+        } catch (\Exception $e) {
+            return errorHandler($e);
         }
     }
 
@@ -178,4 +208,3 @@ class DevicesController extends Controller
         return false;
     }
 }
-

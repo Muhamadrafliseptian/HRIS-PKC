@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Shift;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Employee;
+use App\Models\EmployeeService;
 use App\Models\EmployeeShift;
 use App\Models\ShiftCategory;
 use App\Models\Shifts;
@@ -22,6 +23,13 @@ class AssignmentShiftController extends Controller
                 return [
                     'value' => $branchs->id,
                     'label' => $branchs->name
+                ];
+            });
+
+            $services = EmployeeService::get(['id', 'name'])->map(function ($services) {
+                return [
+                    'value' => $services->id,
+                    'label' => $services->name
                 ];
             });
 
@@ -59,6 +67,7 @@ class AssignmentShiftController extends Controller
                 'branchs' => $branchs,
                 'status' => $status,
                 'shift_categories' => $shiftCategory,
+                'services' => $services,
                 'periods' => $periods
             ];
 
@@ -74,19 +83,20 @@ class AssignmentShiftController extends Controller
         try {
             $request->validate([
                 'branch' => 'required',
+                'service' => 'required',
                 'month' => 'required|date_format:Y-m',
+                'page' => 'nullable|integer|min:1',
             ]);
 
             $employees = Employee::query()
                 ->when($request->branch, function ($q) use ($request) {
                     $q->where('branch', $request->branch);
                 })
-                ->orderByDesc('id')
-                ->get([
-                    'id',
-                    'name',
-                    'branch'
-                ]);
+                ->when($request->service, function ($q) use ($request) {
+                    $q->where('employee_services', $request->service);
+                })
+                ->orderBy('name')
+                ->paginate(10);
 
             $shifts = Shifts::where('is_active', 1)
                 ->get([
@@ -110,13 +120,17 @@ class AssignmentShiftController extends Controller
                     'date'
                 ]);
 
-            $response = [
-                'employees' => $employees,
+            return successHandler([
+                'employees' => $employees->items(),
+                'pagination' => [
+                    'current_page' => $employees->currentPage(),
+                    'last_page' => $employees->lastPage(),
+                    'per_page' => $employees->perPage(),
+                    'total' => $employees->total(),
+                ],
                 'shifts' => $shifts,
                 'employee_shifts' => $employeeShifts,
-            ];
-
-            return successHandler($response);
+            ]);
 
         } catch (Exception $err) {
             return errorHandler($err);
@@ -149,7 +163,7 @@ class AssignmentShiftController extends Controller
 
                 $shift = Shifts::with('details')->find($item['shift_id']);
                 if (!$shift)
-                    continue; // safety
+                    continue;
 
                 $rows[] = [
                     'employee_id' => $item['employee_id'],

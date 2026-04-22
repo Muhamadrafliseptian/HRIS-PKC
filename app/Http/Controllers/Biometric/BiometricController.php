@@ -81,6 +81,7 @@ class BiometricController extends Controller
             $device = BiometricDevice::findOrFail($request->device);
             $zk = new ZKTeco($device->ip_address, $device->port);
 
+
             if (!$zk->connect()) {
                 throw new Exception("Gagal connect ke device {$device->name}");
             }
@@ -91,10 +92,15 @@ class BiometricController extends Controller
             $zk->disconnect();
 
             foreach ($users as $user) {
+
+                if (empty($user['userid'])) {
+                    continue;
+                }
+
                 BiometricUsers::updateOrCreate(
                     [
                         'device_id' => $device->id,
-                        'user_id' => $user['userid'],  
+                        'user_id' => $user['userid'],
                     ],
                     [
                         'uid' => $user['uid'],
@@ -143,7 +149,7 @@ class BiometricController extends Controller
             $zk->disconnect();
 
             return successHandler();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return errorHandler($e);
         }
     }

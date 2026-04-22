@@ -13,11 +13,13 @@ class EmployeeImport implements ToCollection, WithHeadingRow
 
     protected $branch;
     protected $employee_status;
+    protected $employee_service;
     protected $name;
-    public function __construct($branch, $employee_status, $name)
+    public function __construct($branch, $employee_status, $employee_service, $name)
     {
         $this->branch = $branch;
         $this->employee_status = $employee_status;
+        $this->employee_service = $employee_service;
         $this->name = $name;
     }
     public function collection(Collection $rows)
@@ -52,6 +54,7 @@ class EmployeeImport implements ToCollection, WithHeadingRow
                     'name' => $name,
                     'branch' => $this->branch,
                     'employee_status' => $this->employee_status,
+                    'employee_services' => $this->employee_service,
                 ]);
 
                 continue;
@@ -62,6 +65,10 @@ class EmployeeImport implements ToCollection, WithHeadingRow
             }
 
             if ($employee->employee_status != $this->employee_status) {
+                continue;
+            }
+
+            if ($employee->employee_services != $this->employee_service) {
                 continue;
             }
 

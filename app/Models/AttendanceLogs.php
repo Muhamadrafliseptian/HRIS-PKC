@@ -13,4 +13,9 @@ class AttendanceLogs extends Model
     {
         return $this->belongsTo(Employee::class, 'user_id', 'user_id');
     }
+
+    public function dtbranch()
+    {
+        return $this->belongsTo(Branch::class, 'branch', 'id');
+    }
 }

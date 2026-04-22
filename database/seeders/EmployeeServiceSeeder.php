@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use DB;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
-class EmployeeStatusSeeder extends Seeder
+class EmployeeServiceSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -15,31 +15,37 @@ class EmployeeStatusSeeder extends Seeder
     {
         $categories = [
             [
-                'name' => 'ASN',
-                'description' => 'Pegawai Negeri Sipil',
+                'name' => 'Reguler',
+                'description' => 'gak pernah ada shift',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'name' => 'NON ASN',
-                'description' => 'Pegawai Non Negeri Sipil / Kontrak',
+                'name' => 'IGD',
+                'description' => 'shift',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'name' => 'PJLP',
-                'description' => 'Penyedia Jasa Lainnya Perorangan',
+                'name' => 'Farmasi',
+                'description' => 'shift',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'name' => 'PPPK PW',
-                'description' => 'PPPK Paruh Waktu',
+                'name' => 'Lab',
+                'description' => 'shift',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Ruang Bersalin',
+                'description' => 'shift',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
         ];
 
-        DB::table('employee_status')->insert($categories);
+        DB::table('employee_services')->insert($categories);
     }
 }

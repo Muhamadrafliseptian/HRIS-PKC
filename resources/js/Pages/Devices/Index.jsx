@@ -17,7 +17,6 @@ function Index() {
     update: { open: false, data: null },
   });
 
-  // Fetch semua device tanpa status dulu
   const fetchDevices = async () => {
     try {
       setLoading(true);
@@ -25,36 +24,48 @@ function Index() {
       setLoading(false);
 
       if (res.data.status) {
-        // Tampilkan device dulu dengan status "checking"
-        const devicesWithChecking = res.data.params.map((d) => ({
+        const devicesWithChecking = res.data.params.data.map((d) => ({
           ...d,
-          status: "checking",
+          status: d.status,
           time: null,
         }));
+
         setDevices(devicesWithChecking);
 
-        // Check status tiap device paralel
         devicesWithChecking.forEach((device) => {
           checkDeviceStatus(device.id);
         });
       }
     } catch (err) {
       setLoading(false);
-      showError(err?.response?.data?.message);
+      showError(err.response.data.message)
     }
   };
 
   const checkDeviceStatus = async (id) => {
     try {
-      const res = await checkDevices(null, id); // endpoint baru per device
+      const res = await checkDevices(null, id);
+
       if (res.data.status) {
         setDevices((prev) =>
-          prev.map((d) => (d.id === id ? { ...d, ...res.data.params } : d))
+          prev.map((d) =>
+            d.id === id
+              ? {
+                ...d,
+                status: res.data.params.status,
+                synced: res.data.params.synced,
+                time: res.data.params.device_time_after,
+              }
+              : d
+          )
         );
       }
     } catch (err) {
+      showError(err.response.data.message)
       setDevices((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, status: "error" } : d))
+        prev.map((d) =>
+          d.id === id ? { ...d, status: "error" } : d
+        )
       );
     }
   };

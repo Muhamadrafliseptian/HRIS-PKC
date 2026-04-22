@@ -104,7 +104,7 @@ export default function SidebarLayout({ collapsed }) {
       label: "Report",
       children: [
         {
-          key: "/report/attendance",
+          key: "/report/attendance/log",
           icon: <TeamOutlined />,
           label: "Attendance",
         },

@@ -14,7 +14,7 @@ function Index() {
   const [daysInMonth, setDaysInMonth] = useState(0);
   const [monthLabel, setMonthLabel] = useState("");
   const pages = usePage().props;
-  const [utils, setUtils] = useState({ branchs: [], statuses: [], periods: "", shifts: [] });
+  const [utils, setUtils] = useState({ branchs: [], statuses: [], periods: "", shifts: [], services: [] });
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCell, setSelectedCell] = useState(null);
   const [form] = Form.useForm();
@@ -23,6 +23,7 @@ function Index() {
     branch: "",
     periode: dayjs().format("YYYY-MM"),
     shift: "",
+    employee_services: ""
   })
   const handleChangeFilter = (field, value) => {
     try {
@@ -38,6 +39,7 @@ function Index() {
     try {
       let formData = new FormData()
       formData.append("branch", filters.branch)
+      formData.append("employee_services", filters.employee_services)
       await pullAttendances(formData);
       startPolling();
     } catch (err) {
@@ -75,7 +77,8 @@ function Index() {
       branchs: pages?.branchs,
       statuses: pages?.status,
       shifts: pages?.shifts,
-      periods: pages?.periods
+      periods: pages?.periods,
+      services: pages?.services
     });
   }, [filters.branch, filters.periode]);
 
@@ -84,6 +87,7 @@ function Index() {
       let formData = new FormData()
       formData.append("branch", filters.branch)
       formData.append("periode", filters.periode)
+      formData.append("employee_services", filters.employee_services)
       setLoading(true);
       const res = await readAttendances(formData);
       setLoading(false);
@@ -97,53 +101,54 @@ function Index() {
     }
   };
 
-  const renderCell = (dayData) => {
-    if (!dayData || dayData.length === 0) {
-      return <span style={{ color: "#ccc" }}>-</span>;
-    }
+const renderCell = (dayData) => {
+  if (!dayData || dayData.length === 0) {
+    return <span style={{ color: "#ccc" }}>-</span>;
+  }
 
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {dayData.map((item, i) => {
-          if (item.type === "exception") {
-            return (
-              <div
-                key={i}
-                style={{
-                  background: "#e6f4ff",
-                  fontSize: 10,
-                  padding: 2,
-                  borderRadius: 4,
-                  textAlign: "center"
-                }}
-              >
-                {item.status}
-              </div>
-            );
-          }
-          let bgColor = "#f6ffed";
-          if (item.is_late && item.is_early_out) bgColor = "#fff1f0";
-          else if (item.is_late || item.is_early_out) bgColor = "#fffbe6";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {dayData.map((item, i) => {
+        if (item.type === "exception") {
           return (
             <div
               key={i}
               style={{
-                background: bgColor,
-                borderRadius: 4,
-                padding: 2,
+                background: "#e6f4ff",
                 fontSize: 10,
-                textAlign: "center",
+                padding: 2,
+                borderRadius: 4,
+                textAlign: "center"
               }}
             >
-              <div style={{ fontWeight: 700 }}>{item.shift ?? "-"}</div>
-              <div>{item.check_in ?? "-"}</div>
-              <div>{item.check_out ?? "-"}</div>
+              {item.status}
             </div>
           );
-        })}
-      </div>
-    );
-  };
+        }
+
+        // 🎯 hanya pakai is_late
+        const bgColor = item.is_late ? "#fffbe6" : "#f6ffed";
+
+        return (
+          <div
+            key={i}
+            style={{
+              background: bgColor,
+              borderRadius: 4,
+              padding: 2,
+              fontSize: 10,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>{item.shift ?? "-"}</div>
+            <div>{item.check_in ?? "-"}</div>
+            <div>{item.check_out ?? "-"}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
   const handleCellClick = (record, day) => {
     const date = dayjs(filters.periode + "-" + String(day).padStart(2, "0")).format("YYYY-MM-DD");
@@ -250,6 +255,14 @@ function Index() {
 
       <Form layout="vertical" style={{ marginBottom: 12 }}>
         <Row gutter={12}>
+        <Col xs={24} sm={12} md={8} lg={4}>
+            <FormSelect label="Pilih Services" options={utils.services}
+              value={filters.employee_services}
+              onChange={(e) =>
+                handleChangeFilter("employee_services", e)
+              }
+            />
+          </Col>
           <Col xs={24} sm={12} md={8} lg={4}>
             <FormSelect label="Pilih Periode" options={utils.periods}
               value={filters.periode}

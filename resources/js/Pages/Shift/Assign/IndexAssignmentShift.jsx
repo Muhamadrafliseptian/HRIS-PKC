@@ -17,7 +17,7 @@ function IndexAssignmentShift() {
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [schedule, setSchedule] = useState({});
-
+  const [pagination, setPagination] = useState({});
   const [selectedShift, setSelectedShift] = useState(null);
   const [copiedSchedule, setCopiedSchedule] = useState(null);
   const [copiedFrom, setCopiedFrom] = useState(null);
@@ -34,22 +34,25 @@ function IndexAssignmentShift() {
   const [filters, setFilters] = useState({
     branch: "",
     periode: dayjs().format("YYYY-MM"),
+    service: ''
   });
 
   const [utils, setUtils] = useState({
     branchs: [],
     periods: [],
+    services: []
   });
 
   useEffect(() => {
     setUtils({
       branchs: pages?.branchs,
       periods: pages?.periods,
+      services: pages?.services,
     });
   }, []);
 
   useEffect(() => {
-    if (filters.branch) readShift();
+    if (filters.branch, filters.service) readShift();
   }, [filters]);
 
   const readShift = async () => {
@@ -58,8 +61,9 @@ function IndexAssignmentShift() {
 
       let formData = new FormData();
       formData.append("branch", filters.branch);
+      formData.append("service", filters.service);
       formData.append("month", filters.periode);
-
+      formData.append("page", filters.page || 1);
       let response = await readAssignShift(formData);
 
       if (response.data.status) {
@@ -68,6 +72,8 @@ function IndexAssignmentShift() {
         setEmployees(res.employees || []);
         setShifts(res.shifts || []);
         formatSchedule(res.employee_shifts || []);
+
+        setPagination(res.pagination);
       }
 
       setLoading(false);
@@ -198,7 +204,7 @@ function IndexAssignmentShift() {
 
       if (response.data.status) {
         showSuccess(response.data.message);
-        readShift(); 
+        readShift();
       }
     } catch (err) {
       setLoading(false);
@@ -335,17 +341,6 @@ function IndexAssignmentShift() {
           <Row gutter={12}>
             <Col xs={24} sm={12} md={8} lg={4}>
               <FormSelect
-                label="Branch"
-                options={utils.branchs}
-                value={filters.branch}
-                onChange={(e) =>
-                  setFilters({ ...filters, branch: e })
-                }
-                style={{ width: 180 }}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <FormSelect
                 label="Periode"
                 options={utils.periods}
                 value={filters.periode}
@@ -353,6 +348,28 @@ function IndexAssignmentShift() {
                   setFilters({ ...filters, periode: e })
                 }
                 style={{ width: 160 }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <FormSelect
+                label="Service"
+                options={utils.services}
+                value={filters.service}
+                onChange={(e) =>
+                  setFilters({ ...filters, service: e })
+                }
+                style={{ width: 180 }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <FormSelect
+                label="Branch"
+                options={utils.branchs}
+                value={filters.branch}
+                onChange={(e) =>
+                  setFilters({ ...filters, branch: e })
+                }
+                style={{ width: 180 }}
               />
             </Col>
           </Row>
@@ -366,10 +383,17 @@ function IndexAssignmentShift() {
         rowKey="id"
         bordered
         loading={loading}
-        pagination={false}
+        className="custom-table"
+        pagination={{
+          current: pagination.current_page,
+          total: pagination.total,
+          pageSize: pagination.per_page,
+          onChange: (page) => {
+            setFilters((prev) => ({ ...prev, page }));
+          },
+        }}
         scroll={{ x: "max-content", y: 500 }}
         size="small"
-        className="custom-table"
       />
 
       {contextMenu.visible && (

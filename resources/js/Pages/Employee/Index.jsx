@@ -49,21 +49,26 @@ function Index() {
 
   const columns = [
     {
-      title: "Name",
-      render: (data) => <p className="tableSetUp">{data.name}</p>,
-    },
-    {
       title: "NRK",
       render: (data) => <p className="tableSetUp">{data.user_id}</p>,
     },
     {
-      title: "Branch",
-      render: (data) => <p className="tableSetUp">{data.dtbranch?.name}</p>,
+      title: "Name",
+      render: (data) => <p className="tableSetUp">{data.name}</p>,
     },
     {
-      title: "Employee Status",
+      title: "Status",
       render: (data) => <p className="tableSetUp">{data.dtstatus?.name}</p>,
     },
+    {
+      title: "Services",
+      render: (data) => <p className="tableSetUp">{data.dtservice?.name}</p>,
+    },
+    {
+      title: "Unit Kerja",
+      render: (data) => <p className="tableSetUp">{data.dtbranch?.name}</p>,
+    },
+    
   ];
 
   const toggleModal = (what, data = null) => {

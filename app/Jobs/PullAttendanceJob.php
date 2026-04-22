@@ -4,25 +4,34 @@ namespace App\Jobs;
 
 use App\Models\AttendanceLogs;
 use App\Models\BiometricDevice;
-use App\Jobs\ProcessAttendanceJob;
+use App\Models\Employee;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Process;
-use Illuminate\Support\Facades\Log;
 
 class PullAttendanceJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    protected int $branchId;
+    protected ?string $periode;
+    protected ?string $employeeServices;
+
     public function __construct(
-        protected int $branchId,
-        protected ?string $periode = null
-    ) {}
+        int $branchId,
+        ?string $periode = null,
+        ?string $employeeServices = null,
+    ) {
+        $this->branchId = $branchId;
+        $this->periode = $periode;
+        $this->employeeServices = $employeeServices;
+    }
 
     public function handle(): void
     {
@@ -33,61 +42,76 @@ class PullAttendanceJob implements ShouldQueue
             $device = BiometricDevice::where('branch', $this->branchId)->first();
 
             if (!$device) {
-                throw new \Exception('Device tidak ditemukan');
+                throw new Exception('Device tidak ditemukan');
             }
 
-            $lastPulled = AttendanceLogs::where('device_id', $device->id)
-                ->max('scan_time');
-
-            $command = [
-                'python3',
-                base_path('app/Helpers/Attendance.py'),
-                $device->ip_address,
-                (string) $device->port,
-                $this->periode ?? '',
-                $lastPulled ?? ''
-            ];
-
-            $result = Process::timeout(120)->run($command);
-
-            Log::info('PYTHON OUTPUT', [
-                'output' => $result->output(),
-                'error' => $result->errorOutput(),
+            $response = Http::timeout(600)->get('http://127.0.0.1:8001/attendance', [
+                'ip' => $device->ip_address,
+                'port' => $device->port,
+                'periode' => $this->periode,
             ]);
 
-            if ($result->failed()) {
-                throw new \Exception($result->errorOutput() ?: $result->output());
+            if (!$response->successful()) {
+                throw new Exception('Python API error: ' . $response->body());
             }
 
-            $json = json_decode(trim($result->output()), true);
+            $json = json_decode($response->body(), true);
 
-            if (!$json || !($json['success'] ?? false)) {
-                throw new \Exception('Invalid Python response');
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('JSON ERROR: ' . json_last_error_msg());
+            }
+
+            if (!$json || !isset($json['success']) || $json['success'] !== true) {
+                throw new Exception('Invalid Python response structure');
             }
 
             $data = $json['data'] ?? [];
 
             if (empty($data)) {
+                Cache::put('pull_attendance_status', 'no new data', now()->addMinutes(1));
                 return;
             }
 
             $now = now();
 
-            $logs = collect($data)->map(fn($log) => [
-                'user_id'   => $log['user_id'],
-                'scan_time' => $log['timestamp'],
-                'branch'    => $device->branch,
-                'device_id' => $device->id,
-                'device_ip' => $device->ip_address,
-                'created_at'=> $now,
-                'updated_at'=> $now,
-            ]);
+            $logs = collect($data);
+
+            if ($this->employeeServices) {
+
+                $allowedUserIds = Employee::where('employee_services', $this->employeeServices)
+                    ->pluck('user_id')
+                    ->flip();
+
+                if ($allowedUserIds->isEmpty()) {
+                    throw new Exception('Tidak ada employee dengan service tersebut');
+                }
+
+                $logs = $logs->filter(function ($log) use ($allowedUserIds) {
+                    return isset($allowedUserIds[$log['user_id']]);
+                });
+            }
+
+            $logs = $logs->map(function ($log) use ($device, $now) {
+                return [
+                    'user_id' => $log['user_id'] ?? null,
+                    'scan_time' => $log['timestamp'] ?? null,
+                    'branch' => $device->branch,
+                    'device_id' => $device->id,
+                    'device_ip' => $device->ip_address,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            })->filter(fn($item) => $item['user_id'] && $item['scan_time']);
+
+            if ($logs->isEmpty()) {
+                Cache::put('pull_attendance_status', 'no valid data after filter', now()->addMinutes(1));
+                return;
+            }
 
             foreach ($logs->chunk(500) as $chunk) {
                 AttendanceLogs::insertOrIgnore($chunk->toArray());
             }
 
-            // group per HARI
             $dates = $logs->pluck('scan_time')
                 ->map(fn($t) => Carbon::parse($t)->toDateString())
                 ->unique();
@@ -101,14 +125,9 @@ class PullAttendanceJob implements ShouldQueue
 
             Cache::put('pull_attendance_status', 'done', now()->addMinutes(1));
 
-        } catch (\Exception $e) {
-
-            Log::error('PULL FAILED', [
-                'message' => $e->getMessage(),
-            ]);
+        } catch (Exception $e) {
 
             Cache::put('pull_attendance_status', $e->getMessage(), now()->addMinutes(1));
-
             throw $e;
         }
     }
