@@ -9,7 +9,6 @@ import {
     changeStatusMasterShifts,
     readMasterShifts,
 } from "../../../services/api/shift/shift"
-import { FormSelect } from "../../../components/Form";
 import Update from "./Modals/Update";
 import Detail from "./Modals/Detail";
 import Swal from "sweetalert2";
@@ -257,22 +256,6 @@ function Index() {
                 style={{ marginTop: "12px" }}
                 extra={renderUtilityButton()}
             >
-                <Form layout="vertical">
-                    <Row gutter={12}>
-                        <Col xs={24} sm={24} md={12} lg={4} xl={4}>
-                            <FormSelect
-                                label={"Branch"}
-                                value={filters.branch}
-                                search={true}
-                                isCleare={true}
-                                options={utilities.branchs}
-                                onChange={(e) =>
-                                    handleChangeFilter("branch", e)
-                                }
-                            />
-                        </Col>
-                    </Row>
-                </Form>
                 <Table
                     style={{ width: "100%" }}
                     className="custom-table"

@@ -64,9 +64,7 @@ class AttendanceController extends Controller
     public function pull(Request $request)
     {
         try {
-
             $job = PullAttendanceJob::dispatch($request->branch, $request->periode, $request->employee_services);
-
 
             Cache::put('pull_attendance_status', 'processing', now()->addMinutes(10));
 
@@ -78,8 +76,15 @@ class AttendanceController extends Controller
 
     public function pullStatus()
     {
-        $status = Cache::get('pull_attendance_status', 'idle');
-        return successHandler(['status' => $status]);
+        $status = Cache::get('pull_attendance_status', [
+            'state' => 'idle',
+            'message' => null
+        ]);
+
+        return successHandler([
+            'status' => $status['state'],
+            'message' => $status['message']
+        ]);
     }
 
     public function read(Request $request)

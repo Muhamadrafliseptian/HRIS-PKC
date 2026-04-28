@@ -7,11 +7,11 @@ use App\Models\BiometricDevice;
 use App\Models\BiometricUsers;
 use App\Models\Branch;
 use App\Models\EmployeeStatus;
-use DB;
-use Exception;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Rats\Zkteco\Lib\ZKTeco;
+use Exception;
 
 class BiometricController extends Controller
 {
@@ -79,39 +79,66 @@ class BiometricController extends Controller
             set_time_limit(0);
 
             $device = BiometricDevice::findOrFail($request->device);
-            $zk = new ZKTeco($device->ip_address, $device->port);
 
+            $response = Http::timeout(120)
+                ->post('http://10.15.102.73:8001/users', [
+                    'ip' => $device->ip_address,
+                    'port' => (int) $device->port,
+                ]);
 
-            if (!$zk->connect()) {
-                throw new Exception("Gagal connect ke device {$device->name}");
+            if (!$response->successful()) {
+                throw new Exception('Python API error: ' . $response->body());
             }
 
-            $zk->disableDevice();
-            $users = $zk->getUser();
-            $zk->enableDevice();
-            $zk->disconnect();
+            $json = $response->json();
 
-            foreach ($users as $user) {
+            if (!$json || !isset($json['success']) || $json['success'] !== true) {
+                throw new Exception('Invalid Python response');
+            }
 
-                if (empty($user['userid'])) {
-                    continue;
-                }
+            $users = $json['data'] ?? [];
 
-                BiometricUsers::updateOrCreate(
-                    [
+            if (empty($users)) {
+                return successHandler([
+                    'message' => 'Tidak ada user dari device'
+                ]);
+            }
+
+            $now = now();
+
+            $data = collect($users)
+                ->filter(fn($u) => !empty($u['user_id']))
+                ->map(function ($u) use ($device, $now) {
+                    return [
                         'device_id' => $device->id,
-                        'user_id' => $user['userid'],
-                    ],
-                    [
-                        'uid' => $user['uid'],
-                        'name' => $user['name'],
-                        'role' => $user['role'],
-                        'synced_at' => now(),
-                    ]
+                        'user_id' => $u['user_id'],
+                        'uid' => $u['uid'] ?? null,
+                        'name' => $u['name'] ?? null,
+                        'role' => $u['role'] ?? 0,
+                        'synced_at' => $now,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                });
+
+            if ($data->isEmpty()) {
+                return successHandler([
+                    'message' => 'Tidak ada data valid'
+                ]);
+            }
+
+            foreach ($data->chunk(500) as $chunk) {
+                BiometricUsers::upsert(
+                    $chunk->toArray(),
+                    ['device_id', 'user_id'],
+                    ['uid', 'name', 'role', 'synced_at', 'updated_at']
                 );
             }
 
-            return successHandler();
+            return successHandler([
+                'message' => 'Sync user berhasil',
+                'total' => $data->count()
+            ]);
 
         } catch (Exception $e) {
             return errorHandler($e);
@@ -169,7 +196,6 @@ class BiometricController extends Controller
                 throw new Exception("Device tidak ditemukan");
             }
 
-            // ── Ambil data user dari device asal ──
             $zkA = new ZKTeco($deviceA->ip_address, $port);
             if (!$zkA->connect()) {
                 throw new Exception("Gagal connect ke device {$deviceA->name}");
@@ -190,7 +216,6 @@ class BiometricController extends Controller
                 throw new Exception("User tidak ditemukan di device {$deviceA->name}");
             }
 
-            // ── Set user ke device tujuan ──
             $zkB = new ZKTeco($deviceB->ip_address, $port);
             if (!$zkB->connect()) {
                 $zkA->disconnect();
@@ -235,7 +260,6 @@ class BiometricController extends Controller
                 ]
             );
 
-            // Hapus record lama di device asal
             BiometricUsers::where('user_id', $userA['userid'])
                 ->where('device_id', $deviceA->id)
                 ->delete();

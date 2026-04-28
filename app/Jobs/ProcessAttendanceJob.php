@@ -7,6 +7,7 @@ use App\Models\AttendanceLogs;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,124 +24,164 @@ class ProcessAttendanceJob implements ShouldQueue
         protected string $date
     ) {
     }
-
     public function handle(): void
     {
-        $start = Carbon::parse($this->date)->startOfDay();
-        $end = Carbon::parse($this->date)->endOfDay();
+        try {
+            $start = Carbon::parse($this->date)->startOfDay();
+            $end = Carbon::parse($this->date)->endOfDay();
 
-        $logs = AttendanceLogs::where('device_id', $this->deviceId)
-            ->whereBetween('scan_time', [$start, $end->copy()->addDay()])
-            ->orderBy('scan_time')
-            ->get();
+            $logs = AttendanceLogs::where('device_id', $this->deviceId)
+                ->whereBetween('scan_time', [$start, $end])
+                ->orderBy('scan_time')
+                ->get();
 
-        if ($logs->isEmpty()) {
-            return;
-        }
+            if ($logs->isEmpty())
+                return;
 
-        $employees = Employee::whereIn('user_id', $logs->pluck('user_id'))
-            ->get()
-            ->keyBy('user_id');
+            $employees = Employee::whereIn('user_id', $logs->pluck('user_id'))
+                ->get()
+                ->keyBy('user_id');
 
-        $results = [];
+            $results = [];
 
-        foreach ($logs->groupBy('user_id') as $userId => $userLogs) {
+            foreach ($logs->groupBy('user_id') as $userId => $userLogs) {
 
-            $employee = $employees[$userId] ?? null;
-            if (!$employee)
-                continue;
-
-            $shift = EmployeeShift::where('employee_id', $employee->id)
-                ->whereDate('date', $this->date)
-                ->first();
-
-            if (!$shift || !$shift->shift_snapshot)
-                continue;
-
-            $snapshot = is_string($shift->shift_snapshot)
-                ? json_decode($shift->shift_snapshot, true)
-                : $shift->shift_snapshot;
-
-            if (!isset($snapshot['segments']))
-                continue;
-
-            $availableLogs = $userLogs->values();
-
-            foreach ($snapshot['segments'] as $segment) {
-
-                $clockIn = $segment['clock_in'];
-                $clockOut = $segment['clock_out'];
-
-                $startShift = Carbon::parse($this->date . ' ' . $clockIn);
-                $endShift = Carbon::parse($this->date . ' ' . $clockOut);
-
-                if ($clockOut < $clockIn) {
-                    $endShift->addDay();
-                }
-
-                $startWindow = $startShift->copy()->subMinutes(60);
-                $endWindow = $endShift->copy()->addMinutes(60);
-
-                $segmentLogs = $availableLogs->filter(function ($log) use ($startWindow, $endWindow) {
-                    $time = Carbon::parse($log->scan_time);
-                    return $time->between($startWindow, $endWindow);
-                })->sortBy('scan_time')->values();
-
-                if ($segmentLogs->isEmpty())
+                $employee = $employees[$userId] ?? null;
+                if (!$employee)
                     continue;
 
-                $checkIn = $segmentLogs
-                    ->filter(fn($log) => Carbon::parse($log->scan_time)->lte($startShift))
-                    ->sortByDesc('scan_time')
+                $shift = EmployeeShift::where('employee_id', $employee->id)
+                    ->whereDate('date', $this->date)
                     ->first();
 
-                if (!$checkIn) {
-                    $checkIn = $segmentLogs
-                        ->filter(fn($log) => Carbon::parse($log->scan_time)->gte($startShift))
+                if (!$shift || !$shift->shift_snapshot)
+                    continue;
+
+                $snapshot = is_string($shift->shift_snapshot)
+                    ? json_decode($shift->shift_snapshot, true)
+                    : $shift->shift_snapshot;
+
+                if (!isset($snapshot['segments']))
+                    continue;
+
+                $availableLogs = $userLogs->values();
+
+                if (($snapshot['type'] ?? '') === 'split') {
+
+                    $segments = $snapshot['segments'];
+                    $first = $segments[0];
+                    $last = $segments[count($segments) - 1];
+
+                    $startShift = Carbon::parse($this->date . ' ' . $first['clock_in']);
+                    $endShift = Carbon::parse($this->date . ' ' . $last['clock_out']);
+
+                    if ($last['clock_out'] < $first['clock_in']) {
+                        $endShift->addDay();
+                    }
+
+                    $startWindow = $startShift->copy()->subHours(6);
+                    $endWindow = $endShift->copy()->addHours(6);
+
+                    $segmentLogs = $availableLogs
+                        ->filter(
+                            fn($log) =>
+                            Carbon::parse($log->scan_time)->between($startWindow, $endWindow)
+                        )
                         ->sortBy('scan_time')
-                        ->first();
-                }
-                $checkOut = $segmentLogs
-                    ->filter(fn($log) => Carbon::parse($log->scan_time)->gte($endShift))
-                    ->sortBy('scan_time')
-                    ->first();
+                        ->values();
 
-                if (!$checkOut) {
-                    $checkOut = $segmentLogs
-                        ->filter(fn($log) => Carbon::parse($log->scan_time)->lte($endShift))
-                        ->sortByDesc('scan_time')
-                        ->first();
+                    if ($segmentLogs->isEmpty())
+                        continue;
+
+                    $checkInTime = Carbon::parse($segmentLogs->first()->scan_time);
+                    $checkOutTime = Carbon::parse($segmentLogs->last()->scan_time);
+
+                } else {
+                    foreach ($snapshot['segments'] as $segment) {
+
+                        $startShift = Carbon::parse($this->date . ' ' . $segment['clock_in']);
+                        $endShift = Carbon::parse($this->date . ' ' . $segment['clock_out']);
+
+                        if ($segment['clock_out'] < $segment['clock_in']) {
+                            $endShift->addDay();
+                        }
+
+                        $startWindow = $startShift->copy()->subHours(4);
+                        $endWindow = $endShift->copy()->addHours(6);
+
+                        $segmentLogs = $availableLogs
+                            ->filter(
+                                fn($log) =>
+                                Carbon::parse($log->scan_time)->between($startWindow, $endWindow)
+                            )
+                            ->sortBy('scan_time')
+                            ->values();
+
+                        if ($segmentLogs->isEmpty())
+                            continue;
+
+                        $checkIn = $segmentLogs
+                            ->sortBy(
+                                fn($log) =>
+                                abs(Carbon::parse($log->scan_time)->diffInSeconds($startShift))
+                            )
+                            ->first();
+
+                        $checkOut = $segmentLogs
+                            ->filter(
+                                fn($log) =>
+                                Carbon::parse($log->scan_time)->gte($endShift)
+                            )
+                            ->sortBy('scan_time')
+                            ->first();
+
+                        if (!$checkOut) {
+                            $checkOut = $segmentLogs
+                                ->filter(
+                                    fn($log) =>
+                                    Carbon::parse($log->scan_time)->lte($endShift)
+                                )
+                                ->sortByDesc('scan_time')
+                                ->first();
+                        }
+
+                        if (!$checkOut || $checkOut->id === $checkIn->id) {
+                            $checkOut = $segmentLogs->last();
+                        }
+
+                        $checkInTime = Carbon::parse($checkIn->scan_time);
+                        $checkOutTime = Carbon::parse($checkOut->scan_time);
+
+                        break;
+                    }
                 }
-                $checkInTime = Carbon::parse($checkIn->scan_time);
-                $checkOutTime = Carbon::parse($checkOut->scan_time);
+
+                if (!isset($checkInTime) || !isset($checkOutTime))
+                    continue;
 
                 $totalMinutes = $checkInTime->diffInMinutes($checkOutTime);
 
-                $late = 0;
+                $late = $checkInTime->gt($startShift)
+                    ? $startShift->diffInMinutes($checkInTime)
+                    : 0;
 
-                $grace = $startShift->copy()->addMinute();
-
-                if ($checkInTime->gte($grace)) {
-                    $late = $grace->diffInMinutes($checkInTime) + 1;
-                }
-
-                $early = 0;
-                if ($checkOutTime->lt($endShift)) {
-                    $early = $endShift->diffInMinutes($checkOutTime);
-                }
+                $early = $checkOutTime->lt($endShift)
+                    ? $endShift->diffInMinutes($checkOutTime)
+                    : 0;
 
                 $status = 'present';
 
-                if ($totalMinutes < 60)
+                if ($totalMinutes < 60) {
                     $status = 'partial';
-                if ($late > 0)
+                }
+
+                if ($late > 0) {
                     $status = 'late';
+                }
 
-                $usedIds = $segmentLogs->pluck('id')->toArray();
-
-                $availableLogs = $availableLogs
-                    ->reject(fn($l) => in_array($l->id, $usedIds))
-                    ->values();
+                if ($checkInTime->eq($checkOutTime)) {
+                    $status = 'partial';
+                }
 
                 $results[] = [
                     'employee' => $employee->id,
@@ -160,26 +201,33 @@ class ProcessAttendanceJob implements ShouldQueue
                     'updated_at' => now(),
                 ];
             }
-        }
 
-        if (empty($results)) {
-            return;
-        }
+            if (empty($results))
+                return;
 
-        foreach (array_chunk($results, 500) as $chunk) {
-            Attendance::upsert(
-                $chunk,
-                ['employee', 'shift_id', 'date'],
-                [
-                    'first_scan_at',
-                    'last_scan_at',
-                    'total_work_minutes',
-                    'late_minutes',
-                    'early_out_minutes',
-                    'status',
-                    'updated_at'
-                ]
-            );
+            foreach (array_chunk($results, 500) as $chunk) {
+                Attendance::upsert(
+                    $chunk,
+                    ['employee', 'shift_id', 'date'],
+                    [
+                        'first_scan_at',
+                        'last_scan_at',
+                        'total_work_minutes',
+                        'late_minutes',
+                        'early_out_minutes',
+                        'status',
+                        'updated_at'
+                    ]
+                );
+            }
+        } catch (Exception $e) {
+            Log::error("ATTENDANCE JOB ERROR", [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }

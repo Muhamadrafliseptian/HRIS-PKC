@@ -1,79 +1,100 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Main from "../../layout/Main";
-import { Row, Col, Card, Statistic, Table, Tag } from "antd";
-import { UserOutlined, FileTextOutlined, HddOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Statistic, Typography } from "antd";
+import {
+  UserOutlined,
+  HddOutlined,
+  ApartmentOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
+import { usePage } from "@inertiajs/react";
+
+const { Title } = Typography;
+
+const cardStyles = {
+  borderRadius: 16,
+  color: "#fff",
+};
 
 function Index() {
-  const [stats, setStats] = useState({
-    employees: 45,
-    attendances: 320,
-    devices: 3,
-  });
-
-  const [recentAttendance, setRecentAttendance] = useState([
-    { id: 1, employee: "John Doe", attendance_in: "2026-04-07 08:00", status: "online" },
-    { id: 2, employee: "Jane Smith", attendance_in: "2026-04-07 08:05", status: "online" },
-    { id: 3, employee: "Bob Johnson", attendance_in: "2026-04-07 08:10", status: "offline" },
-  ]);
-
-  const columns = [
-    { title: "User ID", dataIndex: "employee", key: "employee" },
-    { title: "Scan Time", dataIndex: "attendance_in", key: "attendance_in" },
-    { 
-      title: "Status", 
-      dataIndex: "status", 
-      key: "status",
-      render: (status) => {
-        if(status === "online") return <Tag color="green">ONLINE</Tag>;
-        if(status === "offline") return <Tag color="red">OFFLINE</Tag>;
-        return <Tag color="orange">UNKNOWN</Tag>;
-      }
-    },
-  ];
+  const { props } = usePage();
+  const stats = props.stats ?? {};
 
   return (
-    <div>
-      <h1 style={{ marginBottom: 20 }}>Dashboard</h1>
+    <div style={{ padding: 20 }}>
+      <Title level={3} style={{ marginBottom: 20 }}>
+        Dashboard
+      </Title>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
+        {/* Employees */}
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            style={{
+              ...cardStyles,
+              background: "linear-gradient(135deg, #1890ff, #36cfc9)",
+            }}
+          >
             <Statistic
-              title="Employees"
+              title={<span style={{ color: "#fff" }}>Employees</span>}
               value={stats.employees}
               prefix={<UserOutlined />}
+              valueStyle={{ color: "#fff" }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
+
+        {/* Branches */}
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            style={{
+              ...cardStyles,
+              background: "linear-gradient(135deg, #722ed1, #b37feb)",
+            }}
+          >
             <Statistic
-              title="Attendance Today"
-              value={stats.attendances}
-              prefix={<FileTextOutlined />}
+              title={<span style={{ color: "#fff" }}>Branches</span>}
+              value={stats.branches}
+              prefix={<ApartmentOutlined />}
+              valueStyle={{ color: "#fff" }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
+
+        {/* Shifts */}
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            style={{
+              ...cardStyles,
+              background: "linear-gradient(135deg, #fa8c16, #ffc069)",
+            }}
+          >
             <Statistic
-              title="Devices Online"
-              value={stats.devices}
+              title={<span style={{ color: "#fff" }}>Shifts</span>}
+              value={stats.shifts}
+              prefix={<ClockCircleOutlined />}
+              valueStyle={{ color: "#fff" }}
+            />
+          </Card>
+        </Col>
+
+        {/* Devices */}
+        <Col xs={24} sm={12} md={6}>
+          <Card
+            style={{
+              ...cardStyles,
+              background: "linear-gradient(135deg, #13c2c2, #87e8de)",
+            }}
+          >
+            <Statistic
+              title={<span style={{ color: "#fff" }}>Devices Online</span>}
+              value={`${stats.devices}/${stats.total_devices}`}
               prefix={<HddOutlined />}
+              valueStyle={{ color: "#fff" }}
             />
           </Card>
         </Col>
       </Row>
-
-      <Card title="Recent Attendance" style={{ marginTop: 24 }}>
-        <Table
-          columns={columns}
-          dataSource={recentAttendance}
-          rowKey={(record) => record.id}
-          pagination={{ pageSize: 5 }}
-          bordered
-        />
-      </Card>
     </div>
   );
 }

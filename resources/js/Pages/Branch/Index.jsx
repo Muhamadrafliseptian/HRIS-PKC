@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Main from '../../layout/Main';
 import { readBranch } from '../../services/api/branch/branch';
+import "../../../css/main.css"
 import { Table, Tag } from 'antd';
 
 function Index() {
@@ -27,58 +28,21 @@ function Index() {
       key: 'name',
     },
     {
-      title: 'Provinsi',
-      dataIndex: ['dtprovince', 'name'],
-      key: 'province',
-    },
-    {
-      title: 'Kota',
-      dataIndex: ['dtcity', 'name'], 
-      key: 'city',
-    },
-    {
-      title: 'Kecamatan',
-      dataIndex: ['dtdistrict', 'name'],
-      key: 'district',
-      render: (text) => text || '-',
-    },
-    {
-      title: 'Kelurahan / Desa',
-      dataIndex: ['dtvillage', 'name'],
-      key: 'village',
-      render: (text) => text || '-',
-    },
-    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (status ? <Tag color="green">Aktif</Tag> : <Tag color="red">Nonaktif</Tag>),
     },
-    {
-      title: 'Latitude',
-      dataIndex: ['dtconfig', 'lat'],
-      key: 'lat',
-    },
-    {
-      title: 'Longitude',
-      dataIndex: ['dtconfig', 'lng'],
-      key: 'lng',
-    },
-    {
-      title: 'Zona Waktu',
-      dataIndex: ['dtconfig', 'time_zone_label'],
-      key: 'time_zone',
-    },
   ];
 
   return (
     <div>
-      <h1>Daftar Branch</h1>
       <Table
         columns={columns}
         dataSource={data}
         rowKey="id"
         pagination={{ pageSize: 10 }}
+        className='custom-table'
       />
     </div>
   );

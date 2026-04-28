@@ -108,11 +108,6 @@ export default function SidebarLayout({ collapsed }) {
           icon: <TeamOutlined />,
           label: "Attendance",
         },
-        {
-          key: "/report/shift",
-          icon: <FileTextOutlined />,
-          label: "Shift",
-        },
       ],
     },
   ];

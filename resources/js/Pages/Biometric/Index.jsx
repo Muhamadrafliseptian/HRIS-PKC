@@ -251,30 +251,6 @@ function Index() {
                 }
               />
             </Col>
-            <Col xs={24} sm={24} md={12} lg={4} xl={4}>
-              <FormSelect
-                options={utils.categories}
-                label={"Category"}
-                value={filters.category}
-                onChange={(e) =>
-                  handleChangeFilter("category", e)
-                }
-              />
-            </Col>
-            <Col xs={24} sm={24} md={12} lg={4} xl={4}>
-              <FormSelect
-                label={"Status"}
-                options={utils.status}
-              />
-            </Col>
-            <Col
-              xs={24} sm={24} md={12} lg={4} xl={4}
-              style={{ display: "flex", justifyContent: "end" }}
-            >
-              <FormSearch
-                label={"Search"}
-              />
-            </Col>
           </Row>
         </Form>
         <Table

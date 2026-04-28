@@ -8,12 +8,15 @@ import { FormSearch, FormSelect } from "../../components/Form";
 import { showError } from "../../components/Alert";
 import Import from "./Modals/Import";
 import { readEmployees } from "../../services/api/employee/employee";
+import { LoadingComponent } from "../../components/Loading";
 
 function Index() {
   const pages = usePage().props
+  const [loading, setLoading] = useState(false)
   const [utils, setUtils] = useState({
     branchs: [],
     categories: [],
+    services: [],
     status: []
   })
   const [users, setUsers] = useState([])
@@ -28,21 +31,48 @@ function Index() {
     setUtils({
       branchs: pages.branchs,
       categories: pages.categories,
+      services: pages.services,
       status: pages.status
     })
   }, [])
 
+  const [filters, setFilters] = useState({
+    branch: "",
+    status: "",
+    category: "",
+    search: "",
+    service: ""
+  })
+  const handleChangeFilter = (field, value) => {
+    try {
+      setFilters((prev) => ({
+        ...prev,
+        [field]: value == undefined ? "" : value,
+      }));
+    } catch (e) {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     readEmployee()
-  }, [])
+  }, [filters.branch, filters.status, filters.search, filters.service])
 
   const readEmployee = async () => {
     try {
-      let response = await readEmployees()
+      let formData = new FormData()
+      formData.append('branch', filters.branch)
+      formData.append('service', filters.service)
+      formData.append('search', filters.search)
+      formData.append('status', filters.status)
+      setLoading(true)
+      let response = await readEmployees(formData)
+      setLoading(false)
       if (response.data.status) {
         setUsers(response.data.params)
       }
     } catch (err) {
+      setLoading(false)
       showError(err.response.data.message)
     }
   }
@@ -68,7 +98,7 @@ function Index() {
       title: "Unit Kerja",
       render: (data) => <p className="tableSetUp">{data.dtbranch?.name}</p>,
     },
-    
+
   ];
 
   const toggleModal = (what, data = null) => {
@@ -108,18 +138,34 @@ function Index() {
               <FormSelect
                 label={"Branch"}
                 options={utils.branchs}
+                disabled={loading}
+                value={filters.branch}
+                onChange={(e) =>
+                  handleChangeFilter("branch", e)
+                }
               />
             </Col>
             <Col xs={24} sm={24} md={12} lg={4} xl={4}>
               <FormSelect
+                label={"Services"}
+                options={utils.services}
+                disabled={loading}
+                value={filters.service}
+                onChange={(e) =>
+                  handleChangeFilter("service", e)
+                }
+              />
+            </Col>
+            <Col xs={24} sm={24} md={12} lg={4} xl={4}>
+              <FormSelect
+                value={filters.status}
                 options={utils.categories}
-                label={"Category"}
-              />
-            </Col>
-            <Col xs={24} sm={24} md={12} lg={4} xl={4}>
-              <FormSelect
                 label={"Status"}
-                options={utils.status}
+                onChange={(e) =>
+                  handleChangeFilter("status", e)
+                }
+                disabled={loading}
+
               />
             </Col>
             <Col
@@ -127,7 +173,12 @@ function Index() {
               style={{ display: "flex", justifyContent: "end" }}
             >
               <FormSearch
+                value={filters.search}
                 label={"Search"}
+                onChange={(e) =>
+                  handleChangeFilter("search", e.target.value)
+                }
+                disabled={loading}
               />
             </Col>
           </Row>
@@ -141,8 +192,10 @@ function Index() {
           className="custom-table"
           showExpandColumn={false}
           scroll={{ x: "max-content" }}
+          loading={loading}
         />
       </Card>
+      {loading ? <LoadingComponent /> : null}
     </div>
   );
 }

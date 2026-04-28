@@ -2,24 +2,24 @@ import React, { useEffect, useState } from "react";
 import { Head, usePage } from "@inertiajs/react";
 import { Card, Table, Breadcrumb } from "antd";
 import Main from "../../../../layout/Main";
-import { router } from "@inertiajs/react";
+import '../../../../../css/main.css'
 
 function IndexPreview() {
-  const { logs, start_date, end_date } = usePage().props;
+  const { data: logs, start_date, end_date } = usePage().props;
 
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    if (logs) {
-      const flat = Object.entries(logs).flatMap(([userId, items]) =>
-        items.map((item) => ({
-          ...item,
-          user_id: userId,
-        }))
-      );
+    if (!logs) return;
 
-      setData(flat);
-    }
+    const flat = Object.entries(logs || {}).flatMap(([userId, items]) =>
+      (items || []).map((item) => ({
+        ...item,
+        user_id: userId,
+      }))
+    );
+
+    setData(flat);
   }, [logs]);
 
   const columns = [
@@ -28,30 +28,38 @@ function IndexPreview() {
       dataIndex: "user_id",
     },
     {
+      title: "Name",
+      render: (row) =>
+        row.dtbiouser?.name || "-",
+    },
+    {
       title: "Scan Time",
-      render: (row) => row.scan_time,
+      dataIndex: "scan_time",
+      render: (val) => val || "-",
     },
     {
       title: "Device",
-      render: (row) => row.dtbiouser?.biometricUser?.device?.name || "-",
+      render: (row) =>
+        row.dtbiouser?.biometric_user?.device?.name || "-",
     },
     {
       title: "Branch",
-      render: (row) => row.dtbiouser?.dtbranch?.name || "-",
+      render: (row) =>
+        row.dtbiouser?.dtbranch?.name || "-",
     },
-  ];
-
-  const breadcrumb = [
-    { title: "Report" },
-    { title: "Attendance" },
-    { title: "Log Preview" },
   ];
 
   return (
     <div>
       <Head title="Preview Attendance Log" />
 
-      <Breadcrumb items={breadcrumb} />
+      <Breadcrumb
+        items={[
+          { title: "Report" },
+          { title: "Attendance" },
+          { title: "Log Preview" },
+        ]}
+      />
 
       <Card
         title={`Preview Log (${start_date} - ${end_date})`}
@@ -60,8 +68,9 @@ function IndexPreview() {
         <Table
           dataSource={data}
           columns={columns}
-          rowKey={(r, i) => i}
+          rowKey="id"
           pagination={{ pageSize: 20 }}
+          className="custom-table"
         />
       </Card>
     </div>

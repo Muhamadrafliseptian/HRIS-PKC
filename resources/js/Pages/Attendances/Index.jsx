@@ -40,10 +40,12 @@ function Index() {
       let formData = new FormData()
       formData.append("branch", filters.branch)
       formData.append("employee_services", filters.employee_services)
+      formData.append("periode", filters.periode)
       await pullAttendances(formData);
       startPolling();
     } catch (err) {
       message.error("Sync gagal ❌");
+      setLoading(false);
     }
   };
 
@@ -53,20 +55,22 @@ function Index() {
         setLoading(true);
         const res = await checkPullStatus();
         const status = res.data.params.status;
+        const messageText = res.data.params.message;
+
         if (status === "done") {
           clearInterval(interval);
           setLoading(false);
           message.success("Sync berhasil ✅");
-          window.location.reload()
+          window.location.reload();
         } else if (status === "failed") {
           clearInterval(interval);
           setLoading(false);
-          message.error("Sync gagal ❌");
+          message.error(messageText || "Sync gagal ❌");
         }
       } catch (err) {
         clearInterval(interval);
         setLoading(false);
-        message.error("Gagal cek status");
+        message.error(err.response.data.message);
       }
     }, 3000);
   };
@@ -101,54 +105,54 @@ function Index() {
     }
   };
 
-const renderCell = (dayData) => {
-  if (!dayData || dayData.length === 0) {
-    return <span style={{ color: "#ccc" }}>-</span>;
-  }
+  const renderCell = (dayData) => {
+    if (!dayData || dayData.length === 0) {
+      return <span style={{ color: "#ccc" }}>-</span>;
+    }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {dayData.map((item, i) => {
-        if (item.type === "exception") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {dayData.map((item, i) => {
+          if (item.type === "exception") {
+            return (
+              <div
+                key={i}
+                style={{
+                  background: "#e6f4ff",
+                  fontSize: 10,
+                  padding: 2,
+                  borderRadius: 4,
+                  textAlign: "center"
+                }}
+              >
+                {item.status}
+              </div>
+            );
+          }
+
+          // 🎯 hanya pakai is_late
+          const bgColor = item.is_late ? "#fffbe6" : "#f6ffed";
+
           return (
             <div
               key={i}
               style={{
-                background: "#e6f4ff",
-                fontSize: 10,
-                padding: 2,
+                background: bgColor,
                 borderRadius: 4,
-                textAlign: "center"
+                padding: 2,
+                fontSize: 10,
+                textAlign: "center",
               }}
             >
-              {item.status}
+              <div style={{ fontWeight: 700 }}>{item.shift ?? "-"}</div>
+              <div>{item.check_in ?? "-"}</div>
+              <div>{item.check_out ?? "-"}</div>
             </div>
           );
-        }
-
-        // 🎯 hanya pakai is_late
-        const bgColor = item.is_late ? "#fffbe6" : "#f6ffed";
-
-        return (
-          <div
-            key={i}
-            style={{
-              background: bgColor,
-              borderRadius: 4,
-              padding: 2,
-              fontSize: 10,
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontWeight: 700 }}>{item.shift ?? "-"}</div>
-            <div>{item.check_in ?? "-"}</div>
-            <div>{item.check_out ?? "-"}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+        })}
+      </div>
+    );
+  };
 
   const handleCellClick = (record, day) => {
     const date = dayjs(filters.periode + "-" + String(day).padStart(2, "0")).format("YYYY-MM-DD");
@@ -255,8 +259,8 @@ const renderCell = (dayData) => {
 
       <Form layout="vertical" style={{ marginBottom: 12 }}>
         <Row gutter={12}>
-        <Col xs={24} sm={12} md={8} lg={4}>
-            <FormSelect label="Pilih Services" options={utils.services}
+          <Col xs={24} sm={12} md={8} lg={4}>
+            <FormSelect label="Services" options={utils.services}
               value={filters.employee_services}
               onChange={(e) =>
                 handleChangeFilter("employee_services", e)
@@ -264,7 +268,7 @@ const renderCell = (dayData) => {
             />
           </Col>
           <Col xs={24} sm={12} md={8} lg={4}>
-            <FormSelect label="Pilih Periode" options={utils.periods}
+            <FormSelect label="Periode" options={utils.periods}
               value={filters.periode}
               onChange={(e) =>
                 handleChangeFilter("periode", e)

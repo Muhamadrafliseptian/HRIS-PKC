@@ -44,6 +44,7 @@ class ShiftSeeder extends Seeder
             // ================= SPLIT =================
             ['code' => 'S13', 'name' => 'Pagi + Malam (UGD)', 'type' => 'split', 'category' => 'UGD'],
             ['code' => 'S14', 'name' => 'Malam + Pagi (UGD)', 'type' => 'split', 'category' => 'UGD'],
+            ['code' => 'S20', 'name' => 'Siang + Malam (UGD)', 'type' => 'split', 'category' => 'UGD'],
 
             ['code' => 'S17', 'name' => 'Pagi + Malam (RB)', 'type' => 'split', 'category' => 'RUANG BERSALIN'],
             ['code' => 'S18', 'name' => 'Malam + Pagi (RB)', 'type' => 'split', 'category' => 'RUANG BERSALIN'],
@@ -103,6 +104,9 @@ class ShiftSeeder extends Seeder
 
             ['code' => 'S18', 'in' => '20:30', 'out' => '07:30', 'cross' => 1, 'order' => 1],
             ['code' => 'S18', 'in' => '07:30', 'out' => '14:00', 'cross' => 0, 'order' => 2],
+            
+            ['code' => 'S20', 'in' => '14:00', 'out' => '21:00', 'cross' => 0, 'order' => 1],
+            ['code' => 'S20', 'in' => '21:00', 'out' => '07:30', 'cross' => 1, 'order' => 2],
         ];
 
         foreach ($details as $d) {

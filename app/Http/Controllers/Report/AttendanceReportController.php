@@ -120,15 +120,23 @@ class AttendanceReportController extends Controller
     public function preview(Request $request)
     {
         return match ($request->type) {
-            'log' => inertia('Report/Attendance/Log/IndexPreview', [
-                'data' => $this->getLogData($request),
-            ]),
+            'log' => (function () use ($request) {
+                    $data = $this->getLogData($request);
+
+                    return inertia('Report/Attendance/Log/IndexPreview', [
+                    'data' => $data,
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date,
+                    ]);
+                })(),
 
             'kehadiran' => inertia('Report/Attendance/Transaction/IndexPreview', [
                 'data' => $this->getKehadiranData($request),
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
             ]),
 
-            default => throw new Exception('Type tidak valid'),
+            default => throw new \Exception('Type tidak valid'),
         };
     }
 
@@ -251,9 +259,9 @@ class AttendanceReportController extends Controller
                 'is_holiday' => $shift->is_holiday,
 
                 'jam_kerja' =>
-                    ($snapshot['segments'][0]['clock_in'] ?? '-') .
-                    ' - ' .
-                    ($snapshot['segments'][0]['clock_out'] ?? '-'),
+                    !empty($snapshot['segments'])
+                    ? ($snapshot['segments'][0]['clock_in'] ?? '-') . ' - ' . ($snapshot['segments'][0]['clock_out'] ?? '-')
+                    : 'OFF',
 
                 'check_in' => $att?->first_scan_at,
                 'check_out' => $att?->last_scan_at,
@@ -262,8 +270,24 @@ class AttendanceReportController extends Controller
                 'early_out_minutes' => $att?->early_out_minutes ?? 0,
                 'total_work_minutes' => $att?->total_work_minutes ?? 0,
 
-                'status' => $att?->status ?? 'absent',
+                'status' => $this->resolveStatus($snapshot, $att),
             ];
         })->groupBy('employee_id');
+    }
+
+    private function resolveStatus($snapshot, $att)
+    {
+        if (
+            ($snapshot['code'] ?? null) === 'OFF' ||
+            empty($snapshot['segments'])
+        ) {
+            return 'off';
+        }
+
+        if ($att) {
+            return $att->status;
+        }
+
+        return 'absent';
     }
 }

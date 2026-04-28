@@ -79,12 +79,12 @@ class EmployeeController extends Controller
                 $query->where('branch', $request->branch);
             }
 
-            if ($request->employee_status) {
-                $query->where('employee_status', $request->employee_status);
+            if ($request->status) {
+                $query->where('employee_status', $request->status);
             }
 
-            if ($request->employee_services) {
-                $query->where('employee_services', $request->employee_services);
+            if ($request->service) {
+                $query->where('employee_services', $request->service);
             }
             
             if ($request->device_id) {

@@ -98,6 +98,11 @@
     color: black;
 }
 
+.row-off {
+    background-color: #fff1f0 !important;
+    color: #cf1322;
+  }
+
 /* End Table Main Css */
 
 /* Hide second panel in RangePicker */
