@@ -27,8 +27,8 @@ class ProcessAttendanceJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            $start = Carbon::parse($this->date)->startOfDay();
-            $end = Carbon::parse($this->date)->endOfDay();
+            $start = Carbon::parse($this->date)->subHours(12);
+            $end = Carbon::parse($this->date)->addDay()->addHours(12);
 
             $logs = AttendanceLogs::where('device_id', $this->deviceId)
                 ->whereBetween('scan_time', [$start, $end])
@@ -66,9 +66,15 @@ class ProcessAttendanceJob implements ShouldQueue
 
                 $availableLogs = $userLogs->values();
 
+                $checkInTime = null;
+                $checkOutTime = null;
+                $startShift = null;
+                $endShift = null;
+
                 if (($snapshot['type'] ?? '') === 'split') {
 
                     $segments = $snapshot['segments'];
+
                     $first = $segments[0];
                     $last = $segments[count($segments) - 1];
 
@@ -82,13 +88,10 @@ class ProcessAttendanceJob implements ShouldQueue
                     $startWindow = $startShift->copy()->subHours(6);
                     $endWindow = $endShift->copy()->addHours(6);
 
-                    $segmentLogs = $availableLogs
-                        ->filter(
-                            fn($log) =>
-                            Carbon::parse($log->scan_time)->between($startWindow, $endWindow)
-                        )
-                        ->sortBy('scan_time')
-                        ->values();
+                    $segmentLogs = $availableLogs->filter(function ($log) use ($startWindow, $endWindow) {
+                        $time = Carbon::parse($log->scan_time);
+                        return $time->between($startWindow, $endWindow);
+                    })->sortBy('scan_time')->values();
 
                     if ($segmentLogs->isEmpty())
                         continue;
@@ -96,7 +99,10 @@ class ProcessAttendanceJob implements ShouldQueue
                     $checkInTime = Carbon::parse($segmentLogs->first()->scan_time);
                     $checkOutTime = Carbon::parse($segmentLogs->last()->scan_time);
 
-                } else {
+                }
+
+                else {
+
                     foreach ($snapshot['segments'] as $segment) {
 
                         $startShift = Carbon::parse($this->date . ' ' . $segment['clock_in']);
@@ -109,43 +115,29 @@ class ProcessAttendanceJob implements ShouldQueue
                         $startWindow = $startShift->copy()->subHours(4);
                         $endWindow = $endShift->copy()->addHours(6);
 
-                        $segmentLogs = $availableLogs
-                            ->filter(
-                                fn($log) =>
-                                Carbon::parse($log->scan_time)->between($startWindow, $endWindow)
-                            )
-                            ->sortBy('scan_time')
-                            ->values();
+                        $segmentLogs = $availableLogs->filter(function ($log) use ($startWindow, $endWindow) {
+                            $time = Carbon::parse($log->scan_time);
+                            return $time->between($startWindow, $endWindow);
+                        })->sortBy('scan_time')->values();
 
                         if ($segmentLogs->isEmpty())
                             continue;
 
-                        $checkIn = $segmentLogs
-                            ->sortBy(
-                                fn($log) =>
-                                abs(Carbon::parse($log->scan_time)->diffInSeconds($startShift))
-                            )
-                            ->first();
+                        $checkIn = $segmentLogs->sortBy(function ($log) use ($startShift) {
+                            return abs(Carbon::parse($log->scan_time)->diffInSeconds($startShift));
+                        })->first();
 
-                        $checkOut = $segmentLogs
-                            ->filter(
-                                fn($log) =>
-                                Carbon::parse($log->scan_time)->gte($endShift)
-                            )
-                            ->sortBy('scan_time')
-                            ->first();
+                        $checkOut = $segmentLogs->filter(function ($log) use ($endShift) {
+                            return Carbon::parse($log->scan_time)->gte($endShift);
+                        })->sortBy('scan_time')->first();
 
                         if (!$checkOut) {
-                            $checkOut = $segmentLogs
-                                ->filter(
-                                    fn($log) =>
-                                    Carbon::parse($log->scan_time)->lte($endShift)
-                                )
-                                ->sortByDesc('scan_time')
-                                ->first();
+                            $checkOut = $segmentLogs->filter(function ($log) use ($endShift) {
+                                return Carbon::parse($log->scan_time)->lte($endShift);
+                            })->sortByDesc('scan_time')->first();
                         }
 
-                        if (!$checkOut || $checkOut->id === $checkIn->id) {
+                        if (!$checkOut || !$checkIn || $checkOut->id === $checkIn->id) {
                             $checkOut = $segmentLogs->last();
                         }
 
@@ -156,8 +148,9 @@ class ProcessAttendanceJob implements ShouldQueue
                     }
                 }
 
-                if (!isset($checkInTime) || !isset($checkOutTime))
+                if (!$checkInTime || !$checkOutTime || !$startShift || !$endShift) {
                     continue;
+                }
 
                 $totalMinutes = $checkInTime->diffInMinutes($checkOutTime);
 
