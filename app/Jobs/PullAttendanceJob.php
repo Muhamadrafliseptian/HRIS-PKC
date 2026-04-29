@@ -50,7 +50,7 @@ class PullAttendanceJob implements ShouldQueue
             }
 
             $response = Http::timeout(600)
-                ->post('http://10.15.102.73:8001/attendance', [
+                ->post('http://att-pkc.deveen.online/attendance', [
                     'ip' => $device->ip_address,
                     'port' => $device->port,
                     'periode' => $this->periode,
