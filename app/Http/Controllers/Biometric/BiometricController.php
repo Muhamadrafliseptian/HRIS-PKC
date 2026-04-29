@@ -81,7 +81,7 @@ class BiometricController extends Controller
             $device = BiometricDevice::findOrFail($request->device);
 
             $response = Http::timeout(120)
-                ->post('http://192.168.118.31:8000/users', [
+                ->post('http://10.15.102.73:8001/users', [
                     'ip' => $device->ip_address,
                     'port' => (int) $device->port,
                 ]);
