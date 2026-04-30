@@ -8,6 +8,7 @@ use App\Models\Employee;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -40,7 +41,7 @@ class PullAttendanceJob implements ShouldQueue
             'state' => 'processing',
             'message' => null
         ], now()->addMinutes(10));
-        
+
         try {
 
             $device = BiometricDevice::where('branch', $this->branchId)->first();
@@ -54,6 +55,7 @@ class PullAttendanceJob implements ShouldQueue
                     'ip' => $device->ip_address,
                     'port' => $device->port,
                     'periode' => $this->periode,
+                    'last_pull' => optional($device->last_pull_at)->toDateTimeString()
                 ]);
 
             if (!$response->successful()) {
@@ -117,6 +119,11 @@ class PullAttendanceJob implements ShouldQueue
                 AttendanceLogs::insertOrIgnore($chunk->toArray());
             }
 
+            $latestScanTime = $logs
+                ->pluck('scan_time')
+                ->map(fn($t) => Carbon::parse($t))
+                ->max();
+
             $dates = $logs->pluck('scan_time')
                 ->map(fn($t) => Carbon::parse($t)->toDateString())
                 ->unique();
@@ -132,6 +139,14 @@ class PullAttendanceJob implements ShouldQueue
                 'state' => 'done',
                 'message' => 'success'
             ], now()->addMinutes(1));
+
+            DB::transaction(function () use ($device, $latestScanTime) {
+                if ($latestScanTime) {
+                    $device->update([
+                        'last_pull_at' => $latestScanTime
+                    ]);
+                }
+            });
 
         } catch (Exception $e) {
             Cache::put('pull_attendance_status', [
