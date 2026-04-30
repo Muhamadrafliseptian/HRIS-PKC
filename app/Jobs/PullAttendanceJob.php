@@ -50,7 +50,7 @@ class PullAttendanceJob implements ShouldQueue
             }
 
             $response = Http::timeout(600)
-                ->post('http://10.15.102.73:8001/attendance', [
+                ->post('http://127.0.0.1:8001/attendance', [
                     'ip' => $device->ip_address,
                     'port' => $device->port,
                     'periode' => $this->periode,
@@ -134,13 +134,6 @@ class PullAttendanceJob implements ShouldQueue
             ], now()->addMinutes(1));
 
         } catch (Exception $e) {
-            Log::error('Pull Attendance Error', [
-                'branch_id' => $this->branchId,
-                'periode' => $this->periode,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
             Cache::put('pull_attendance_status', [
                 'state' => 'failed',
                 'message' => $e->getMessage()

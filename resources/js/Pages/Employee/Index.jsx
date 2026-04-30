@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Head, usePage } from "@inertiajs/react";
-import { Table, Card, Form, Row, Col, Breadcrumb } from "antd";
+import { Table, Card, Form, Row, Col, Breadcrumb, Dropdown } from "antd";
 import Main from "../../layout/Main";
 import "../../../css/main.css";
 import { PrimaryButton } from "../../components/Button";
@@ -9,6 +9,7 @@ import { showError } from "../../components/Alert";
 import Import from "./Modals/Import";
 import { readEmployees } from "../../services/api/employee/employee";
 import { LoadingComponent } from "../../components/Loading";
+import Detail from "./Modals/Detail";
 
 function Index() {
   const pages = usePage().props
@@ -77,6 +78,21 @@ function Index() {
     }
   }
 
+  const getMenuItems = (data) => [
+    {
+      key: "detail",
+      label: "Detail",
+      icon: <i className="ti ti-edit"></i>,
+      onClick: () => toggleModal("detail", data),
+    },
+
+    {
+      key: "delete",
+      label: "Delete",
+      icon: <i className="ti ti-trash"></i>,
+    },
+  ];
+
   const columns = [
     {
       title: "NRK",
@@ -97,6 +113,24 @@ function Index() {
     {
       title: "Unit Kerja",
       render: (data) => <p className="tableSetUp">{data.dtbranch?.name}</p>,
+    },
+    {
+      width: "150px",
+      title: <i className="ti ti-settings"></i>,
+      align: "center",
+      render: (data) => (
+        <>
+          <Dropdown
+            menu={{ items: getMenuItems(data) }}
+            trigger={["click"]}
+          >
+            <i
+              className="ti ti-dots-vertical"
+              style={{ cursor: "pointer", padding: "12px" }}
+            ></i>
+          </Dropdown>
+        </>
+      ),
     },
 
   ];
@@ -119,7 +153,8 @@ function Index() {
     <div>
       <Head title="Biometric Users" />
       <Breadcrumb items={breadCrumbsItems} />
-      <Import open={modal.import.open}
+      <Detail open={modal.detail.open}
+        data={modal.detail.data}
         handleClose={toggleModal}
         handleUpdate={readEmployee}
       />

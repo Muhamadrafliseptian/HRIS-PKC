@@ -104,7 +104,7 @@ function Index() {
       children: [
         { key: "log", label: "Log" },
         { key: "kehadiran", label: "Kehadiran" },
-        // { key: "rekap", label: "Rekap" },
+        { key: "rekap", label: "Rekap" },
       ],
     },
     {
@@ -113,7 +113,7 @@ function Index() {
       children: [
         { key: "preview_log", label: "Log" },
         { key: "preview_kehadiran", label: "Kehadiran" },
-        // { key: "preview_rekap", label: "Rekap" },
+        { key: "preview_rekap", label: "Rekap" },
       ],
     },
   ];

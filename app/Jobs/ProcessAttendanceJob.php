@@ -30,8 +30,7 @@ class ProcessAttendanceJob implements ShouldQueue
             $start = Carbon::parse($this->date)->subHours(12);
             $end = Carbon::parse($this->date)->addDay()->addHours(12);
 
-            $logs = AttendanceLogs::where('device_id', $this->deviceId)
-                ->whereBetween('scan_time', [$start, $end])
+            $logs = AttendanceLogs::whereBetween('scan_time', [$start, $end])
                 ->orderBy('scan_time')
                 ->get();
 
@@ -99,9 +98,7 @@ class ProcessAttendanceJob implements ShouldQueue
                     $checkInTime = Carbon::parse($segmentLogs->first()->scan_time);
                     $checkOutTime = Carbon::parse($segmentLogs->last()->scan_time);
 
-                }
-
-                else {
+                } else {
 
                     foreach ($snapshot['segments'] as $segment) {
 
@@ -185,6 +182,12 @@ class ProcessAttendanceJob implements ShouldQueue
                     'first_scan_at' => $checkInTime,
                     'last_scan_at' => $checkOutTime,
 
+                    'in_device_id' => $checkIn?->device_id ?? null,
+                    'out_device_id' => $checkOut?->device_id ?? null,
+
+                    'in_branch' => $checkIn?->branch ?? null,
+                    'out_branch' => $checkOut?->branch ?? null,
+
                     'total_work_minutes' => $totalMinutes,
                     'late_minutes' => $late,
                     'early_out_minutes' => $early,
@@ -207,20 +210,16 @@ class ProcessAttendanceJob implements ShouldQueue
                         'last_scan_at',
                         'total_work_minutes',
                         'late_minutes',
-                        'early_out_minutes',
+                        'in_device_id',
+                        'out_device_id',
+                        'in_branch',
+                        'out_branch',
                         'status',
                         'updated_at'
                     ]
                 );
             }
         } catch (Exception $e) {
-            Log::error("ATTENDANCE JOB ERROR", [
-                'user_id' => $userId,
-                'message' => $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 }

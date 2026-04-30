@@ -64,7 +64,7 @@
 
 <body>
 
-    <!-- HEADER INSTANSI -->
+    <!-- HEADER -->
     <table class="header-table">
         <tr>
             <td width="10%" style="text-align:center;">
@@ -88,55 +88,62 @@
     </table>
 
     <!-- JUDUL -->
-    <h3>LAPORAN LOG KEHADIRAN</h3>
+    <h3>LAPORAN REKAPITULASI KEHADIRAN</h3>
 
     <!-- PERIODE -->
     <div class="sub-header">
         Periode: {{ $start_date ?? '-' }} s/d {{ $end_date ?? '-' }}
     </div>
 
-    @foreach($logs as $userId => $items)
+    <table>
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Total Hari</th>
+                <th>Hadir</th>
+                <th>Terlambat</th>
+                <th>Pulang Cepat</th>
 
-        <div class="employee-title">
-            Nama:
-            {{ optional($items->first()->dtbiouser)->name ?? 'User ' . $userId }}
-        </div>
+                <th>DLAW</th>
+                <th>DLAK</th>
+                <th>DLP</th>
 
-        <table>
-            <thead>
+                <th>IJIN1</th>
+                <th>IJIN2</th>
+                <th>I</th>
+
+                <th>Sakit</th>
+                <th>Cuti</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach($data as $row)
                 <tr>
-                    <th>No</th>
-                    <th>Tanggal</th>
-                    <th>Jam</th>
-                    <th>Device</th>
-                    <th>Unit Kerja</th>
+                    <td style="text-align:left;">
+                        {{ $row['name'] }}
+                    </td>
+
+                    <td>{{ $row['total_hari'] }}</td>
+                    <td>{{ $row['hadir'] }}</td>
+
+                    <td class="badge-orange">{{ $row['terlambat'] }}</td>
+                    <td>{{ $row['pulang_cepat'] }}</td>
+
+                    <td>{{ $row['DLAW'] }}</td>
+                    <td>{{ $row['DLAK'] }}</td>
+                    <td>{{ $row['DLP'] }}</td>
+
+                    <td>{{ $row['IJIN1'] }}</td>
+                    <td>{{ $row['IJIN2'] }}</td>
+                    <td>{{ $row['I'] }}</td>
+
+                    <td>{{ $row['sakit'] }}</td>
+                    <td>{{ $row['cuti'] }}</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach($items as $i => $log)
-                    <tr>
-                        <td>{{ $i + 1 }}</td>
-                        <td>{{ \Carbon\Carbon::parse($log->scan_time)->format('Y-m-d') }}</td>
-                        <td>{{ \Carbon\Carbon::parse($log->scan_time)->format('H:i:s') }}</td>
-
-                        <td>
-                            {{ optional(optional($log->dtbiouser)->biometricUser->device)->name ?? '-' }}
-                        </td>
-
-                        <td>
-                            {{ optional($log->dtbiouser->dtbranch)->name ?? '-' }}
-                        </td>
-
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="summary">
-            Total Scan: {{ count($items) }}
-        </div>
-
-    @endforeach
+            @endforeach
+        </tbody>
+    </table>
 
 </body>
 

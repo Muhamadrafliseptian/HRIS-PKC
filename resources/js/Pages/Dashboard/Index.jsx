@@ -7,7 +7,7 @@ import {
   ApartmentOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { usePage } from "@inertiajs/react";
+import { Head, usePage } from "@inertiajs/react";
 
 const { Title } = Typography;
 
@@ -22,12 +22,12 @@ function Index() {
 
   return (
     <div style={{ padding: 20 }}>
+      <Head title="Dashboard" />
       <Title level={3} style={{ marginBottom: 20 }}>
         Dashboard
       </Title>
 
       <Row gutter={[16, 16]}>
-        {/* Employees */}
         <Col xs={24} sm={12} md={6}>
           <Card
             style={{
@@ -44,7 +44,6 @@ function Index() {
           </Card>
         </Col>
 
-        {/* Branches */}
         <Col xs={24} sm={12} md={6}>
           <Card
             style={{
@@ -61,7 +60,6 @@ function Index() {
           </Card>
         </Col>
 
-        {/* Shifts */}
         <Col xs={24} sm={12} md={6}>
           <Card
             style={{
@@ -78,7 +76,6 @@ function Index() {
           </Card>
         </Col>
 
-        {/* Devices */}
         <Col xs={24} sm={12} md={6}>
           <Card
             style={{

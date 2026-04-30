@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\AttendanceException;
 use App\Models\AttendanceLogs;
 use App\Models\BiometricDevice;
 use App\Models\Branch;
@@ -11,6 +12,7 @@ use App\Models\Employee;
 use App\Models\EmployeeService;
 use App\Models\EmployeeShift;
 use App\Models\EmployeeStatus;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -108,12 +110,31 @@ class AttendanceReportController extends Controller
                 case 'kehadiran':
                     return $this->downloadKehadiran($request);
 
+                case 'rekap':
+                    return $this->downloadRekap($request);
                 default:
                     throw new Exception('Type tidak valid');
             }
 
         } catch (Exception $err) {
             return errorHandler($err);
+        }
+    }
+
+    private function downloadRekap(Request $request)
+    {
+        try {
+            $data = $this->getRekap($request);
+
+            $pdf = Pdf::loadView('pdf.attendance_rekapitulasi', [
+                'data' => $data,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+            ]);
+    
+            return $pdf->download('attendance_rekapitulasi.pdf');
+        } catch (Exception $err) {
+
         }
     }
 
@@ -132,6 +153,12 @@ class AttendanceReportController extends Controller
 
             'kehadiran' => inertia('Report/Attendance/Transaction/IndexPreview', [
                 'data' => $this->getKehadiranData($request),
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+            ]),
+
+            'rekap' => inertia('Report/Attendance/Rekap/IndexPreview', [
+                'data' => $this->getRekap($request),
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
             ]),
@@ -164,17 +191,6 @@ class AttendanceReportController extends Controller
         ]);
 
         return $pdf->download('attendance_rekap.pdf');
-    }
-
-    public function previewKehadiran(Request $request)
-    {
-        $data = $this->getKehadiranData($request);
-
-        return view('pdf.attendance_rekap', [
-            'data' => $data,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-        ]);
     }
 
     private function getLogData($request)
@@ -273,6 +289,162 @@ class AttendanceReportController extends Controller
                 'status' => $this->resolveStatus($snapshot, $att),
             ];
         })->groupBy('employee_id');
+    }
+
+    public function getRekap($request)
+    {
+        $start = Carbon::parse($request->start_date);
+        $end = Carbon::parse($request->end_date);
+
+        $ids = json_decode($request->ids, true);
+
+        $employeeQuery = Employee::query()->select('id', 'name');
+
+        if (!empty($ids)) {
+            $employeeQuery->whereIn('id', $ids);
+        }
+
+        if ($request->branch) {
+            $employeeQuery->where('branch', $request->branch);
+        }
+
+        $employees = $employeeQuery->get()->keyBy('id');
+
+        $attendances = Attendance::whereBetween('date', [$start, $end])
+            ->get()
+            ->groupBy('employee');
+
+        $exceptions = AttendanceException::where(function ($q) use ($start, $end) {
+            $q->whereBetween('start_date', [$start, $end])
+                ->orWhereBetween('end_date', [$start, $end]);
+        })
+            ->get()
+            ->groupBy('employee');
+
+        $days = $start->diffInDays($end) + 1;
+
+        $result = [];
+
+        foreach ($employees as $employee) {
+
+            $empId = $employee->id;
+
+            $empAttendance = $attendances[$empId] ?? collect();
+            $empException = $exceptions[$empId] ?? collect();
+
+            $attendanceByDate = $empAttendance->groupBy(function ($att) {
+                return Carbon::parse($att->date)->format('Y-m-d');
+            });
+
+            $hadir = 0;
+            $terlambat = 0;
+            $pulangCepat = 0;
+
+            foreach ($attendanceByDate as $date => $attList) {
+
+                $att = $attList->first();
+
+                $hadir++;
+
+                if (($att->late_minutes ?? 0) > 0) {
+                    $terlambat++;
+                }
+
+                if (($att->early_out_minutes ?? 0) < 0) {
+                    $pulangCepat++;
+                }
+            }
+
+            $DLAW = 0;
+            $DLAK = 0;
+            $DLP = 0;
+
+            $IJIN1 = 0;
+            $IJIN2 = 0;
+            $I = 0;
+
+            $sakit = 0;
+            $cuti = 0;
+
+            foreach ($empException as $ex) {
+
+                $daysCount = $this->countDays($ex, $start, $end);
+
+                switch ($ex->status) {
+                    case 'DLAW':
+                        $DLAW += $daysCount;
+                        break;
+                    case 'DLAK':
+                        $DLAK += $daysCount;
+                        break;
+                    case 'DLP':
+                        $DLP += $daysCount;
+                        break;
+
+                    case 'IJIN1':
+                        $IJIN1 += $daysCount;
+                        break;
+                    case 'IJIN2':
+                        $IJIN2 += $daysCount;
+                        break;
+                    case 'I':
+                        $I += $daysCount;
+                        break;
+
+                    case 'S':
+                        $sakit += $daysCount;
+                        break;
+                    case 'CT':
+                        $cuti += $daysCount;
+                        break;
+                }
+            }
+
+            $izin = $IJIN1 + $IJIN2 + $I + $DLAW + $DLAK + $DLP;
+
+            $alpha = max(0, $days - ($hadir + $izin + $sakit + $cuti));
+
+            $result[] = [
+                'employee_id' => $empId,
+                'name' => $employee->name,
+
+                'total_hari' => $days,
+                'hadir' => $hadir,
+                'alpha' => $alpha,
+
+                'terlambat' => $terlambat,
+                'pulang_cepat' => $pulangCepat,
+
+                'DLAW' => $DLAW,
+                'DLAK' => $DLAK,
+                'DLP' => $DLP,
+
+                'IJIN1' => $IJIN1,
+                'IJIN2' => $IJIN2,
+                'I' => $I,
+
+                'izin_total' => $izin,
+                'sakit' => $sakit,
+                'cuti' => $cuti,
+            ];
+        }
+
+        return $result;
+    }
+
+    private function countDays($exception, $start, $end)
+    {
+        $startDate = Carbon::parse($exception->start_date);
+        $endDate = Carbon::parse($exception->end_date);
+
+        $realStart = $startDate->greaterThan($start) ? $startDate : $start;
+        $realEnd = $endDate->lessThan($end) ? $endDate : $end;
+
+        if ($realStart->gt($realEnd)) {
+            return 0;
+        }
+
+        return $realStart->diffInDays($realEnd) + 1;
     }
 
     private function resolveStatus($snapshot, $att)

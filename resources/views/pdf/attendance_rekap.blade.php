@@ -14,10 +14,6 @@
             margin-bottom: 10px;
         }
 
-        .header-table td {
-            border: none;
-        }
-
         h3 {
             text-align: center;
             margin-bottom: 5px;
@@ -29,17 +25,10 @@
             font-size: 11px;
         }
 
-        .employee-title {
-            margin-top: 15px;
-            margin-bottom: 10px;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         th,
@@ -47,19 +36,27 @@
             border: 1px solid #000;
             padding: 5px;
             text-align: center;
+            font-size: 10px;
         }
 
         th {
             background: #f0f0f0;
         }
 
-        .summary {
-            margin-bottom: 10px;
-            font-size: 10px;
+        .employee-title {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 12px;
         }
 
-        .late {
+        .badge-red {
             color: red;
+            font-weight: bold;
+        }
+
+        .badge-orange {
+            color: orange;
             font-weight: bold;
         }
     </style>
