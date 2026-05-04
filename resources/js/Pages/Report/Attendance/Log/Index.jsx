@@ -104,7 +104,14 @@ function Index() {
       children: [
         { key: "log", label: "Log" },
         { key: "kehadiran", label: "Kehadiran" },
-        { key: "rekap", label: "Rekap" },
+        {
+          key: "rekap",
+          label: "Rekap",
+          children: [
+            { key: "rekap", label: "PDF" },
+            { key: "rekap_xlsx", label: "XLSX" },
+          ],
+        },
       ],
     },
     {
@@ -147,7 +154,6 @@ function Index() {
       formData.append("device_id", filters.device_id);
       formData.append("start_date", filters.start_date);
       formData.append("end_date", filters.end_date);
-      formData.append("type", type);
 
       const res = await axios.post(
         "/report/attendance/log/download",
@@ -155,12 +161,26 @@ function Index() {
         { responseType: "blob" }
       );
 
+      const disposition = res.headers["content-disposition"];
+      let fileName = "download";
+
+      if (disposition && disposition.includes("filename=")) {
+        fileName = disposition
+          .split("filename=")[1]
+          .replace(/"/g, "");
+      }
+
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
+
       link.href = url;
-      link.setAttribute("download", `${type}_attendance.pdf`);
+      link.setAttribute("download", fileName);
+
       document.body.appendChild(link);
       link.click();
+
+      link.remove();
+      window.URL.revokeObjectURL(url);
 
       setLoading(false);
     } catch (err) {
@@ -256,15 +276,6 @@ function Index() {
                 onChange={(e) => handleChangeFilter('service', e)}
               />
             </Col>
-            <Col xs={24} sm={24} md={12} lg={4} xl={4}>
-              <FormSelect
-                label={"Devices"}
-                disabled={loading}
-                value={filters.device_id}
-                onChange={(e) => handleChangeFilter('device_id', e)}
-                options={utils.devices}
-              />
-            </Col>
             <Col
               xs={24} sm={24} md={12} lg={4} xl={4}
               style={{ display: "flex", justifyContent: "end" }}
@@ -273,6 +284,7 @@ function Index() {
                 value={filters.search}
                 disabled={loading}
                 label={"Search"}
+                onSearch={readEmployee}
                 onChange={(e) => handleChangeFilter('search', e.target.value)}
               />
             </Col>

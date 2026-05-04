@@ -200,7 +200,19 @@ class AttendanceController extends Controller
             ->whereHas('dtemployee')
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
-            ->when($request->branch, fn($q) => $q->where('branch', $request->branch))
+            ->when($request->branch, function ($q) use ($request) {
+                $q->where('branch', $request->branch);
+            })
+            ->when($request->employee_services, function ($q) use ($request) {
+                $q->whereHas('dtemployee', function ($q2) use ($request) {
+                    $q2->where('employee_services', $request->employee_services);
+                });
+            })
+            ->when($request->search, function ($q) use ($request) {
+                $q->whereHas('dtemployee', function ($q2) use ($request) {
+                    $q2->where('name', 'like', '%' . $request->search . '%');
+                });
+            })
             ->get();
     }
 

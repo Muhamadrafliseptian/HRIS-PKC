@@ -5,7 +5,7 @@ import Main from "../../layout/Main";
 import "../../../css/main.css";
 import { LoadingComponent } from '../../components/Loading';
 import { Head, usePage } from "@inertiajs/react";
-import { FormSelect } from "../../components/Form";
+import { FormSearch, FormSelect } from "../../components/Form";
 import dayjs from "dayjs";
 import { PrimaryButton } from '../../components/Button'
 function Index() {
@@ -23,7 +23,8 @@ function Index() {
     branch: "",
     periode: dayjs().format("YYYY-MM"),
     shift: "",
-    employee_services: ""
+    employee_services: "",
+    search: ""
   })
   const handleChangeFilter = (field, value) => {
     try {
@@ -84,11 +85,12 @@ function Index() {
       periods: pages?.periods,
       services: pages?.services
     });
-  }, [filters.branch, filters.periode]);
+  }, [filters.branch, filters.periode, filters.employee_services]);
 
   const handleRead = async () => {
     try {
       let formData = new FormData()
+      formData.append("search", filters.search)
       formData.append("branch", filters.branch)
       formData.append("periode", filters.periode)
       formData.append("employee_services", filters.employee_services)
@@ -280,6 +282,15 @@ function Index() {
               value={filters.branch}
               onChange={(e) =>
                 handleChangeFilter("branch", e)
+              } />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={4}>
+            <FormSearch label="Search"
+              value={filters.search}
+              onSearch={handleRead}
+              disabled={loading}
+              onChange={(e) =>
+                handleChangeFilter("search", e.target.value)
               } />
           </Col>
         </Row>

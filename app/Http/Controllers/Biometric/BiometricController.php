@@ -9,8 +9,8 @@ use App\Models\Branch;
 use App\Models\EmployeeStatus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Rats\Zkteco\Lib\ZKTeco;
 use Exception;
 
 class BiometricController extends Controller
@@ -130,8 +130,8 @@ class BiometricController extends Controller
             foreach ($data->chunk(500) as $chunk) {
                 BiometricUsers::upsert(
                     $chunk->toArray(),
-                    ['device_id', 'user_id'],
-                    ['uid', 'name', 'role', 'synced_at', 'updated_at']
+                    ['device_id', 'uid'],
+                    ['user_id', 'name', 'role', 'synced_at', 'updated_at']
                 );
             }
 
@@ -144,129 +144,84 @@ class BiometricController extends Controller
             return errorHandler($e);
         }
     }
+
     public function create(Request $request)
     {
         try {
-            $zk = new ZKTeco($this->ip, $this->port);
-
-            if (!$zk->connect()) {
-                return errorHandler('Gagal connect ke device');
-            }
-
-            $lastUid = BiometricUsers::max('uid') ?? 0;
-            $uid = $lastUid + 1;
-
-            $zk->setUser(
-                $uid,
-                $request->user_id,
-                $request->name,
-                '',
-                0
-            );
-
-            BiometricUsers::create([
-                'uid' => $uid,
-                'user_id' => $request->user_id,
-                'name' => $request->name,
-                'device_id' => $request->device_id,
-                'role' => 0,
-                'synced_at' => now(),
+            $request->validate([
+                'device_id' => 'required|exists:biometric_devices,id',
+                'user_id' => 'required',
+                'name' => 'required'
             ]);
 
-            $zk->disconnect();
+            $device = BiometricDevice::findOrFail($request->device_id);
 
-            return successHandler();
-        } catch (Exception $e) {
-            return errorHandler($e);
-        }
-    }
+            // 🔥 cek existing termasuk soft delete
+            $existing = BiometricUsers::withTrashed()
+                ->where('device_id', $device->id)
+                ->where('user_id', $request->user_id)
+                ->first();
 
-    public function transferUser(Request $request)
-    {
-        try {
-            $idOrigin = $request->id_origin;
-            $idDestination = $request->id_destination;
-            $port = 4370;
-            $userId = $request->user_id;
+            // 🔥 generate UID (per device)
+            $uid = (BiometricUsers::where('device_id', $device->id)->max('uid') ?? 0) + 1;
 
-            $deviceA = BiometricDevice::where('id', $idOrigin)->first();
-            $deviceB = BiometricDevice::where('id', $idDestination)->first();
+            // 🔥 HIT DEVICE API
+            $response = Http::timeout(120)
+                ->retry(3, 1000)
+                ->post('http://127.0.0.1:8001/set-user', [
+                    'ip' => $device->ip_address,
+                    'port' => (int) $device->port,
+                    'uid' => $uid,
+                    'name' => $request->name,
+                    'user_id' => $request->user_id
+                ]);
 
-            if (!$deviceA || !$deviceB) {
-                throw new Exception("Device tidak ditemukan");
+            if (!$response->successful()) {
+                throw new Exception(
+                    $response->json()['detail'] ?? $response->body()
+                );
             }
 
-            $zkA = new ZKTeco($deviceA->ip_address, $port);
-            if (!$zkA->connect()) {
-                throw new Exception("Gagal connect ke device {$deviceA->name}");
+            $result = $response->json();
+
+            if (!($result['success'] ?? false)) {
+                throw new Exception($result['message'] ?? 'Gagal create user di device');
             }
 
-            $zkA->disableDevice();
-            $usersA = $zkA->getUser();
-            $zkA->enableDevice();
+            // 🔥 HANDLE DB
+            if ($existing) {
 
-            if (!$usersA) {
-                $zkA->disconnect();
-                throw new Exception("Tidak ada user di device {$deviceA->name}");
-            }
+                // kalau soft delete → restore
+                if ($existing->trashed()) {
+                    $existing->restore();
+                }
 
-            $userA = collect($usersA)->firstWhere('userid', $userId);
-            if (!$userA) {
-                $zkA->disconnect();
-                throw new Exception("User tidak ditemukan di device {$deviceA->name}");
-            }
-
-            $zkB = new ZKTeco($deviceB->ip_address, $port);
-            if (!$zkB->connect()) {
-                $zkA->disconnect();
-                throw new Exception("Gagal connect ke device {$deviceB->name}");
-            }
-
-            $zkB->disableDevice();
-            $usersB = $zkB->getUser() ?? [];
-            $uidExists = collect($usersB)->contains(fn($u) => $u['uid'] == $userA['uid']);
-
-            if ($uidExists) {
-                $zkB->enableDevice();
-                $zkB->disconnect();
-                $zkA->disconnect();
-                throw new Exception("UID {$userA['uid']} sudah digunakan di device {$deviceB->name}", 422);
-            }
-
-            $zkB->setUser(
-                $userA['uid'],
-                $userA['userid'],
-                $userA['name'],
-                '',
-                $userA['role']
-            );
-            $zkB->enableDevice();
-            $zkB->disconnect();
-
-            // ── Hapus user dari device asal (setelah berhasil set di tujuan) ──
-            $zkA->disableDevice();
-            $zkA->removeUser($userA['uid']); // ← method yang benar untuk rats/zkteco
-            $zkA->enableDevice();
-            $zkA->disconnect();
-
-            // ── Update database ──
-            BiometricUsers::updateOrCreate(
-                ['user_id' => $userA['userid'], 'device_id' => $deviceB->id],
-                [
-                    'uid' => $userA['uid'],
-                    'name' => $userA['name'],
-                    'role' => $userA['role'],
+                // update data
+                $existing->update([
+                    'uid' => $uid,
+                    'name' => $request->name,
+                    'role' => 0,
                     'synced_at' => now(),
-                ]
-            );
+                ]);
 
-            BiometricUsers::where('user_id', $userA['userid'])
-                ->where('device_id', $deviceA->id)
-                ->delete();
+            } else {
 
-            return successHandler();
+                // insert baru
+                BiometricUsers::create([
+                    'uid' => $uid,
+                    'user_id' => $request->user_id,
+                    'name' => $request->name,
+                    'device_id' => $device->id,
+                    'role' => 0,
+                    'synced_at' => now(),
+                ]);
+            }
 
-        } catch (\Exception $e) {
+            return successHandler([
+                'message' => 'User berhasil ditambahkan / diupdate'
+            ]);
+
+        } catch (Exception $e) {
             return errorHandler($e);
         }
     }
@@ -274,28 +229,161 @@ class BiometricController extends Controller
     public function destroy(Request $request)
     {
         try {
+            $request->validate([
+                'device' => 'required|exists:biometric_devices,id',
+                'user_id' => 'required'
+            ]);
+
             $device = BiometricDevice::findOrFail($request->device);
 
             $user = BiometricUsers::where('user_id', $request->user_id)
                 ->where('device_id', $device->id)
                 ->firstOrFail();
 
-            $zk = new ZKTeco($device->ip_address, $device->port);
+            $response = Http::timeout(120)
+                ->retry(3, 1000)
+                ->post('http://127.0.0.1:8001/delete-user', [
+                    'ip' => $device->ip_address,
+                    'port' => (int) $device->port,
+                    'uid' => $user->uid,
+                ]);
 
-            if (!$zk->connect()) {
-                throw new Exception('Gagal connect ke device', 422);
+            if (!$response->successful()) {
+                throw new \Exception(
+                    $response->json()['detail'] ?? $response->body()
+                );
             }
 
-            $zk->removeUser($user->uid);
+            $result = $response->json();
+
+            if (!isset($result['success']) || !$result['success']) {
+                throw new \Exception(
+                    $result['message'] ?? 'Gagal hapus user di device'
+                );
+            }
 
             $user->delete();
 
-            $zk->disconnect();
+            return successHandler([
+                'message' => 'User berhasil dihapus'
+            ]);
 
-            return successHandler();
-
+        } catch (ValidationException $e) {
+            return errorHandler($e->errors());
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return errorHandler('User atau device tidak ditemukan');
         } catch (\Exception $e) {
             return errorHandler($e);
+        }
+    }
+    public function transferUser(Request $request)
+    {
+        try {
+            $request->validate([
+                'from_device' => 'required|exists:biometric_devices,id',
+                'to_device' => 'required|exists:biometric_devices,id',
+                'user_id' => 'required'
+            ]);
+
+            if ($request->from_device == $request->to_device) {
+                throw new Exception('Device asal dan tujuan tidak boleh sama');
+            }
+
+            $fromDevice = BiometricDevice::findOrFail($request->from_device);
+            $toDevice = BiometricDevice::findOrFail($request->to_device);
+
+            $user = BiometricUsers::where('user_id', $request->user_id)
+                ->where('device_id', $fromDevice->id)
+                ->firstOrFail();
+
+            // 🔥 generate UID baru di device tujuan
+            $newUid = (BiometricUsers::where('device_id', $toDevice->id)->max('uid') ?? 0) + 1;
+
+            // 🔥 cek existing di device tujuan (termasuk soft delete)
+            $existing = BiometricUsers::withTrashed()
+                ->where('device_id', $toDevice->id)
+                ->where('user_id', $user->user_id)
+                ->first();
+
+            // 🔥 CREATE di device tujuan
+            $createResponse = Http::timeout(120)
+                ->retry(3, 1000)
+                ->post('http://127.0.0.1:8001/set-user', [
+                    'ip' => $toDevice->ip_address,
+                    'port' => (int) $toDevice->port,
+                    'uid' => $newUid,
+                    'name' => $user->name,
+                    'user_id' => $user->user_id
+                ]);
+
+            if (!$createResponse->successful()) {
+                throw new Exception(
+                    $createResponse->json()['detail'] ?? $createResponse->body()
+                );
+            }
+
+            $createResult = $createResponse->json();
+
+            if (!($createResult['success'] ?? false)) {
+                throw new Exception($createResult['message'] ?? 'Gagal create user di device tujuan');
+            }
+
+            // 🔥 HANDLE DB TARGET
+            if ($existing) {
+
+                if ($existing->trashed()) {
+                    $existing->restore();
+                }
+
+                $existing->update([
+                    'uid' => $newUid,
+                    'name' => $user->name,
+                    'synced_at' => now()
+                ]);
+
+            } else {
+
+                BiometricUsers::create([
+                    'uid' => $newUid,
+                    'user_id' => $user->user_id,
+                    'name' => $user->name,
+                    'device_id' => $toDevice->id,
+                    'role' => 0,
+                    'synced_at' => now(),
+                ]);
+            }
+
+            // 🔥 DELETE dari device asal
+            $deleteResponse = Http::timeout(120)
+                ->retry(3, 1000)
+                ->post('http://127.0.0.1:8001/delete-user', [
+                    'ip' => $fromDevice->ip_address,
+                    'port' => (int) $fromDevice->port,
+                    'uid' => $user->uid,
+                ]);
+
+            if (!$deleteResponse->successful()) {
+                throw new Exception(
+                    $deleteResponse->json()['detail'] ?? $deleteResponse->body()
+                );
+            }
+
+            $deleteResult = $deleteResponse->json();
+
+            if (!($deleteResult['success'] ?? false)) {
+                throw new Exception($deleteResult['message'] ?? 'Gagal delete user dari device asal');
+            }
+
+            $user->delete();
+
+            return successHandler([
+                'message' => 'User berhasil dipindahkan'
+            ]);
+
+        } catch (ValidationException $e) {
+            return errorHandler($e);
+        } catch (Exception $e) {
+            return errorHandler($e->getMessage());
         }
     }
 }

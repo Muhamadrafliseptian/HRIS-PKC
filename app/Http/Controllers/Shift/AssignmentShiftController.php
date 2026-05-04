@@ -55,7 +55,7 @@ class AssignmentShiftController extends Controller
             $start = Carbon::now()->startOfMonth();
 
             for ($i = 0; $i < 6; $i++) {
-                $date = $start->copy()->addMonths($i);
+                $date = $start->copy()->subMonths($i);
 
                 $periods[] = [
                     'value' => $date->format('Y-m'),

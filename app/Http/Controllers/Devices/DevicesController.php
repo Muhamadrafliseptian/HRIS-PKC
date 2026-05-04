@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\EmployeeStatus;
 use Carbon\Carbon;
 use Exception;
+use Http;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Rats\Zkteco\Lib\ZKTeco;
@@ -92,7 +93,36 @@ class DevicesController extends Controller
     {
         $devices = BiometricDevice::with(['dtbranch', 'category'])->get();
 
-        $results = $devices->map(function ($device) {
+        $payload = $devices
+            ->filter(fn($d) => $d->ip_address && $d->port)
+            ->map(fn($d) => [
+                'ip' => $d->ip_address,
+                'port' => $d->port,
+            ])
+            ->values();
+
+        $statusMap = [];
+
+        try {
+            if ($payload->isNotEmpty()) {
+
+                $response = Http::timeout(10)->post('http://127.0.0.1:8001/check-multiple', [
+                    'devices' => $payload
+                ]);
+
+                if ($response->successful()) {
+                    $json = $response->json();
+
+                    foreach ($json['data'] ?? [] as $item) {
+                        $statusMap[$item['ip']] = $item['status'];
+                    }
+                }
+            }
+
+        } catch (\Exception $e) {
+        }
+
+        $results = $devices->map(function ($device) use ($statusMap) {
 
             $base = [
                 'id' => $device->id,
@@ -110,46 +140,17 @@ class DevicesController extends Controller
                 ]);
             }
 
-            if (!$this->isReachable($device->ip_address, $device->port, 1)) {
-                return array_merge($base, [
-                    'status' => 'offline',
-                    'synced' => false,
-                ]);
-            }
+            $status = $statusMap[$device->ip_address] ?? 'offline';
 
-            try {
-                $zk = new ZKTeco($device->ip_address, $device->port);
-
-                socket_set_option($zk->_zkclient, SOL_SOCKET, SO_RCVTIMEO, [
-                    'sec' => 2,
-                    'usec' => 0,
-                ]);
-
-                if ($zk->connect()) {
-
-                    $deviceTime = $zk->getTime();
-                    $zk->disconnect();
-
-                    return array_merge($base, [
-                        'status' => 'online',
-                        'synced' => true,
-                        'device_time' => $deviceTime,
-                    ]);
-                }
-
-                return array_merge($base, [
-                    'status' => 'offline',
-                    'synced' => false,
-                ]);
-
-            } catch (\Exception $e) {
-                return errorHandler($e);
-            }
-        })->values();
+            return array_merge($base, [
+                'status' => $status,
+                'synced' => $status === 'online',
+            ]);
+        });
 
         return successHandler([
             'status' => true,
-            'data' => $results,
+            'data' => $results->values(),
         ]);
     }
 
@@ -167,34 +168,46 @@ class DevicesController extends Controller
             'category' => $device->category?->name,
         ];
 
-        if (!$this->isReachable($device->ip_address, $device->port, 1)) {
+        if (!$device->ip_address || !$device->port) {
             return successHandler(array_merge($response, [
-                'status' => 'offline',
+                'status' => 'no_config',
             ]));
         }
 
         try {
-            $zk = new ZKTeco($device->ip_address, $device->port);
-
-            socket_set_option($zk->_zkclient, SOL_SOCKET, SO_RCVTIMEO, [
-                'sec' => 2,
-                'usec' => 0,
+            $res = Http::timeout(10)->get('http://127.0.0.1:8001/device-time', [
+                'ip' => $device->ip_address,
+                'port' => $device->port,
             ]);
 
-            if (!$zk->connect()) {
+            if (!$res->successful()) {
                 return successHandler(array_merge($response, [
                     'status' => 'offline',
                 ]));
             }
 
-            $zk->disconnect();
+            $json = $res->json();
+
+            if (!$json['success']) {
+                return successHandler(array_merge($response, [
+                    'status' => 'offline',
+                ]));
+            }
 
             return successHandler(array_merge($response, [
                 'status' => 'online',
+                'device_time' => $json['after'],
+                'server_time' => $json['server_time'],
+                'difference' => $json['difference_after'],
+                'device_info' => $json['data'],
+                'synced' => $json['synced'],
             ]));
 
         } catch (\Exception $e) {
-            return errorHandler($e);
+            return successHandler(array_merge($response, [
+                'status' => 'offline',
+                'error' => $e->getMessage(),
+            ]));
         }
     }
 

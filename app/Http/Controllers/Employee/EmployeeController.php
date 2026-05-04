@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
+use App\Models\BiometricDevice;
 use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\EmployeeService;
@@ -39,6 +40,13 @@ class EmployeeController extends Controller
                 ];
             });
 
+            $device = BiometricDevice::orderBy('id', 'desc')->get(['id', 'name'])->map(function ($device) {
+                return [
+                    'value' => $device->id,
+                    'label' => $device->name
+                ];
+            });
+
             $status = [
                 [
                     'value' => 1,
@@ -55,6 +63,7 @@ class EmployeeController extends Controller
                 'categories' => $category,
                 'status' => $status,
                 'services' => $service,
+                'devices' => $device,
             ];
 
             return Inertia::render('Employee/Index', $response);
@@ -83,8 +92,8 @@ class EmployeeController extends Controller
                 $query->where('employee_status', $request->status);
             }
 
-            if ($request->service) {
-                $query->where('employee_services', $request->service);
+            if ($request->employee_services) {
+                $query->where('employee_services', $request->employee_services);
             }
             
             if ($request->device_id) {
@@ -108,10 +117,11 @@ class EmployeeController extends Controller
 
             return successHandler($data);
 
-        } catch (\Exception $err) {
+        } catch (Exception $err) {
             return errorHandler($err);
         }
     }
+    
     public function import(Request $request)
     {
         try {

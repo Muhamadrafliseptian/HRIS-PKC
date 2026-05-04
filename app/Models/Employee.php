@@ -11,7 +11,7 @@ class Employee extends Model
 
     public function biometricUser()
     {
-        return $this->belongsTo(BiometricUsers::class, 'user_id', 'user_id');
+        return $this->hasMany(BiometricUsers::class, 'user_id', 'user_id');
     }
 
     public function dtbranch()

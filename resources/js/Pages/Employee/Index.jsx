@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Head, usePage } from "@inertiajs/react";
-import { Table, Card, Form, Row, Col, Breadcrumb } from "antd";
+import { Table, Card, Form, Row, Col, Breadcrumb, Dropdown } from "antd";
 import Main from "../../layout/Main";
 import "../../../css/main.css";
 import { PrimaryButton } from "../../components/Button";
 import { FormSearch, FormSelect } from "../../components/Form";
 import { showError } from "../../components/Alert";
 import Import from "./Modals/Import";
+import Detail from "./Modals/Detail";
 import { readEmployees } from "../../services/api/employee/employee";
 import { LoadingComponent } from "../../components/Loading";
 
@@ -17,6 +18,7 @@ function Index() {
     branchs: [],
     categories: [],
     services: [],
+    devices: [],
     status: []
   })
   const [users, setUsers] = useState([])
@@ -32,6 +34,7 @@ function Index() {
       branchs: pages.branchs,
       categories: pages.categories,
       services: pages.services,
+      devices: pages.devices,
       status: pages.status
     })
   }, [])
@@ -43,6 +46,7 @@ function Index() {
     search: "",
     service: ""
   })
+
   const handleChangeFilter = (field, value) => {
     try {
       setFilters((prev) => ({
@@ -56,13 +60,13 @@ function Index() {
 
   useEffect(() => {
     readEmployee()
-  }, [filters.branch, filters.status, filters.search, filters.service])
+  }, [filters.branch, filters.status, filters.service])
 
   const readEmployee = async () => {
     try {
       let formData = new FormData()
       formData.append('branch', filters.branch)
-      formData.append('service', filters.service)
+      formData.append('employee_services', filters.service)
       formData.append('search', filters.search)
       formData.append('status', filters.status)
       setLoading(true)
@@ -99,6 +103,39 @@ function Index() {
       render: (data) => <p className="tableSetUp">{data.dtbranch?.name}</p>,
     },
 
+    // {
+    //   title: "Device",
+    //   render: (data) => {
+    //     const devices =
+    //       data.biometric_user
+    //         ?.map((u) => u.device?.name)
+    //         ?.filter(Boolean) || [];
+
+    //     return (
+    //       <p className="tableSetUp">
+    //         {devices.length ? devices.join(", ") : "-"}
+    //       </p>
+    //     );
+    //   },
+    // },
+    {
+      width: "150px",
+      title: <i className="ti ti-settings"></i>,
+      align: "center",
+      render: (data) => (
+        <>
+          <Dropdown
+            menu={{ items: getMenuItems(data) }}
+            trigger={["click"]}
+          >
+            <i
+              className="ti ti-dots-vertical"
+              style={{ cursor: "pointer", padding: "12px" }}
+            ></i>
+          </Dropdown>
+        </>
+      ),
+    },
   ];
 
   const toggleModal = (what, data = null) => {
@@ -112,18 +149,34 @@ function Index() {
     });
   };
   const breadCrumbsItems = [
-    { title: <h5 style={{ fontWeight: "600" }}>Biometric</h5> },
-    { title: <h5 style={{ fontWeight: "600" }}>Users</h5> },
+    { title: <h5 style={{ fontWeight: "600" }}>Employees</h5> },
+    { title: <h5 style={{ fontWeight: "600" }}>Index</h5> },
+  ];
+
+  const getMenuItems = (data) => [
+    {
+      key: "detail",
+      label: "Detail",
+      icon: <i className="ti ti-eye"></i>,
+      onClick: () => toggleModal("detail", data),
+    },
   ];
   return (
     <div>
-      <Head title="Biometric Users" />
+      <Head title="Employees" />
       <Breadcrumb items={breadCrumbsItems} />
       <Import open={modal.import.open}
         handleClose={toggleModal}
         handleUpdate={readEmployee}
       />
-      <Card title={"Biometric Users"}
+      <Detail
+        open={modal.detail.open}
+        data={modal.detail.data}
+        devices={utils.devices}
+        handleClose={toggleModal}
+        handleUpdate={readEmployee}
+      />
+      <Card title={"Employees"}
         style={{ marginTop: "12px" }}
         extra={
           <PrimaryButton
@@ -179,6 +232,7 @@ function Index() {
                   handleChangeFilter("search", e.target.value)
                 }
                 disabled={loading}
+                onSearch={readEmployee}
               />
             </Col>
           </Row>

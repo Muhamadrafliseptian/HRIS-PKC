@@ -17,6 +17,9 @@ use Exception;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\RekapAttendanceExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 class AttendanceReportController extends Controller
 {
     public function indexLog()
@@ -102,7 +105,6 @@ class AttendanceReportController extends Controller
     public function download(Request $request)
     {
         try {
-
             switch ($request->type) {
                 case 'log':
                     return $this->downloadLog($request);
@@ -112,9 +114,29 @@ class AttendanceReportController extends Controller
 
                 case 'rekap':
                     return $this->downloadRekap($request);
+
+                case 'rekap_xlsx':
+                    return $this->downloadRekapXlsx($request);
                 default:
                     throw new Exception('Type tidak valid');
             }
+
+        } catch (Exception $err) {
+            return errorHandler($err);
+        }
+    }
+
+    public function downloadRekapXlsx(Request $request)
+    {
+        try {
+            $data = $this->getRekap($request);
+
+            $fileName = 'attendance_rekapitulasi_' . now()->format('Ymd_His') . '.xlsx';
+
+            return Excel::download(
+                new RekapAttendanceExport($data),
+                $fileName
+            );
 
         } catch (Exception $err) {
             return errorHandler($err);
@@ -131,7 +153,7 @@ class AttendanceReportController extends Controller
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
             ]);
-    
+
             return $pdf->download('attendance_rekapitulasi.pdf');
         } catch (Exception $err) {
 
@@ -143,7 +165,6 @@ class AttendanceReportController extends Controller
         return match ($request->type) {
             'log' => (function () use ($request) {
                     $data = $this->getLogData($request);
-
                     return inertia('Report/Attendance/Log/IndexPreview', [
                     'data' => $data,
                     'start_date' => $request->start_date,
@@ -230,7 +251,6 @@ class AttendanceReportController extends Controller
             return $items->values();
         });
     }
-
     private function getKehadiranData($request)
     {
         $ids = json_decode($request->ids, true);

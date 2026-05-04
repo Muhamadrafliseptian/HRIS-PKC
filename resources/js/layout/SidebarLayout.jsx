@@ -74,11 +74,11 @@ export default function SidebarLayout({ collapsed }) {
           icon: <HomeOutlined />, 
           label: "Branch",
         },
-        {
-          key: "/master/category",
-          icon: <TagOutlined />,
-          label: "Status",
-        },
+        // {
+        //   key: "/master/category",
+        //   icon: <TagOutlined />,
+        //   label: "Status",
+        // },
       ],
     },
     {
