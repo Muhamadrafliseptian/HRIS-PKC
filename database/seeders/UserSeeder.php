@@ -15,6 +15,19 @@ class UserSeeder extends Seeder
         $menuIds = Menu::pluck('id')->toArray();
         $permissions = implode(',', $menuIds);
 
+        if (!User::where('email', 'admin@local.test')->exists()) {
+            User::create([
+                'name' => 'Super Admin',
+                'email' => 'admin@local.test',
+                'password' => Hash::make('admin123'),
+                'permission' => '',
+                'is_active' => 1,
+                'is_super' => 1,
+                'is_sync' => 1,
+                'role' => 0,
+            ]);
+        }
+
         $employees = Employee::all();
 
         foreach ($employees as $employee) {
@@ -30,7 +43,7 @@ class UserSeeder extends Seeder
                 'id' => $employee->user_id,
                 'name' => $employee->name ?? 'User ' . $employee->user_id,
                 'email' => $email,
-                'password' => Hash::make($employee->user_id), 
+                'password' => Hash::make($employee->user_id),
                 'permission' => $permissions, 
                 'is_active' => 1,
                 'is_super' => 0,
