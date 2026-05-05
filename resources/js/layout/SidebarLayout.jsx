@@ -1,116 +1,96 @@
 import React from "react";
 import { Layout, Menu, Typography } from "antd";
+import { router, usePage } from "@inertiajs/react";
 import {
   DashboardOutlined,
-  UserOutlined,
-  TeamOutlined,
-  FileTextOutlined,
-  ApartmentOutlined,
-  ClockCircleOutlined,
+  ScheduleOutlined,
   IdcardOutlined,
+  ScanOutlined,
   LaptopOutlined,
+  UserOutlined,
+  ApartmentOutlined,
   HomeOutlined,
-  TagOutlined,
   CalendarOutlined,
+  ClockCircleOutlined,
   UserAddOutlined,
   BarChartOutlined,
-  ScheduleOutlined,
-  ScanOutlined,
+  SettingFilled,
+  TeamOutlined
 } from "@ant-design/icons";
-import { router, usePage } from "@inertiajs/react";
 
 const { Sider } = Layout;
 const { Text } = Typography;
 
-export default function SidebarLayout({ collapsed }) {
+export default function SidebarLayout({ collapsed, menus = [] }) {
   const { url } = usePage();
-  const openKeys = [
-    url.startsWith("/biometric") ? "biometric" : null,
-    url.startsWith("/master") ? "master" : null,
-    url.startsWith("/shift") ? "manage_shift" : null,
-    url.startsWith("/report") ? "reports" : null,
-  ].filter(Boolean);
 
-  const menuItems = [
-    {
-      key: "/",
-      icon: <DashboardOutlined />,
-      label: "Dashboard",
-    },
-    {
-      key: "/attendance",
-      icon: <ScheduleOutlined />, 
-      label: "Attendance",
-    },
-    {
-      key: "/employee",
-      icon: <IdcardOutlined />,
-      label: "Employee",
-    },
-    {
-      key: "biometric",
-      icon: <ScanOutlined />,
-      label: "Biometric",
-      children: [
-        {
-          key: "/biometric/users",
-          icon: <UserOutlined />,
-          label: "Users",
-        },
-        {
-          key: "/biometric/devices",
-          icon: <LaptopOutlined />,
-          label: "Devices",
-        },
-      ],
-    },
-    {
-      key: "master",
-      icon: <ApartmentOutlined />,
-      label: "Master",
-      children: [
-        {
-          key: "/master/branch",
-          icon: <HomeOutlined />, 
-          label: "Branch",
-        },
-        // {
-        //   key: "/master/category",
-        //   icon: <TagOutlined />,
-        //   label: "Status",
-        // },
-      ],
-    },
-    {
-      key: "manage_shift",
-      icon: <CalendarOutlined />,
-      label: "Manage Shift",
-      children: [
-        {
-          key: "/manage/shift/master",
-          icon: <ClockCircleOutlined />,
-          label: "Master",
-        },
-        {
-          key: "/manage/shift/assignment",
-          icon: <UserAddOutlined />, 
-          label: "Assign",
-        },
-      ],
-    },
-    {
-      key: "reports",
-      icon: <BarChartOutlined />,
-      label: "Report",
-      children: [
-        {
-          key: "/report/attendance/log",
-          icon: <TeamOutlined />,
-          label: "Attendance",
-        },
-      ],
-    },
-  ];
+  const iconMap = {
+    dashboard: <DashboardOutlined />,
+    attendance: <ScheduleOutlined />,
+    employee: <IdcardOutlined />,
+    biometric: <ScanOutlined />,
+    users: <UserOutlined />,
+    devices: <LaptopOutlined />,
+    master: <ApartmentOutlined />,
+    branch: <HomeOutlined />,
+    shift: <CalendarOutlined />,
+    shift_master: <ClockCircleOutlined />,
+    shift_assign: <UserAddOutlined />,
+    report: <BarChartOutlined />,
+    report_attendance: <TeamOutlined />,
+    setting: <SettingFilled />,
+    setting_users: <UserOutlined />,
+  };
+
+  const renderIcon = (icon) => {
+    return iconMap[icon] || <DashboardOutlined />;
+  };
+
+  const mapMenu = (menus) => {
+    return menus.map((m) => ({
+      key: `menu-${m.id}`,
+      label: m.label,
+      icon: renderIcon(m.icon),
+      url: m.url,
+      children:
+        m.childs && m.childs.length > 0
+          ? m.childs.map((c) => ({
+              key: `menu-${c.id}`,
+              label: c.label,
+              icon: renderIcon(c.icon),
+              url: c.url,
+            }))
+          : undefined,
+    }));
+  };
+
+  const mappedMenus = mapMenu(menus);
+
+  const findKeyByUrl = (menus, url) => {
+    for (let m of menus) {
+      if (m.url === url) return m.key;
+      if (m.children) {
+        for (let c of m.children) {
+          if (c.url === url) return c.key;
+        }
+      }
+    }
+    return null;
+  };
+
+  const selectedKey = findKeyByUrl(mappedMenus, url);
+
+  // ================= FIND MENU BY KEY =================
+  const findMenuByKey = (menus, key) => {
+    for (let m of menus) {
+      if (m.key === key) return m;
+      if (m.children) {
+        const found = findMenuByKey(m.children, key);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
 
   return (
     <Sider
@@ -121,21 +101,18 @@ export default function SidebarLayout({ collapsed }) {
         overflow: "auto",
         height: "100vh",
         position: "sticky",
-        insetInlineStart: 0,
         top: 0,
-        bottom: 0,
       }}
     >
+      {/* HEADER */}
       <div
         style={{
-          width: "100%",
           height: "70px",
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           color: "#fff",
           fontWeight: "bold",
-          fontSize: 18,
-          justifyContent: "center",
         }}
       >
         {collapsed ? (
@@ -144,18 +121,19 @@ export default function SidebarLayout({ collapsed }) {
           "PKC Kebon Jeruk"
         )}
       </div>
+
       <Menu
         theme="dark"
         mode="inline"
-        selectedKeys={[url]}
-        defaultOpenKeys={openKeys}
-        items={menuItems}
+        selectedKeys={selectedKey ? [selectedKey] : []}
+        items={mappedMenus}
         onClick={({ key }) => {
-          if (key.startsWith("/")) {
-            router.visit(key);
+          const menu = findMenuByKey(mappedMenus, key);
+
+          if (menu?.url) {
+            router.visit(menu.url);
           }
         }}
-        style={{ borderRight: 0 }}
       />
     </Sider>
   );

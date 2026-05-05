@@ -81,6 +81,9 @@ class BiometricController extends Controller
             $device = BiometricDevice::findOrFail($request->device);
 
             $response = Http::timeout(120)
+            ->withHeaders([
+                'x-api-key' => env('ZK_API_KEY')
+            ])
                 ->post('http://127.0.0.1:8001/users', [
                     'ip' => $device->ip_address,
                     'port' => (int) $device->port,
@@ -156,18 +159,18 @@ class BiometricController extends Controller
 
             $device = BiometricDevice::findOrFail($request->device_id);
 
-            // 🔥 cek existing termasuk soft delete
             $existing = BiometricUsers::withTrashed()
                 ->where('device_id', $device->id)
                 ->where('user_id', $request->user_id)
                 ->first();
 
-            // 🔥 generate UID (per device)
             $uid = (BiometricUsers::where('device_id', $device->id)->max('uid') ?? 0) + 1;
 
-            // 🔥 HIT DEVICE API
             $response = Http::timeout(120)
                 ->retry(3, 1000)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
                 ->post('http://127.0.0.1:8001/set-user', [
                     'ip' => $device->ip_address,
                     'port' => (int) $device->port,
@@ -242,6 +245,9 @@ class BiometricController extends Controller
 
             $response = Http::timeout(120)
                 ->retry(3, 1000)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
                 ->post('http://127.0.0.1:8001/delete-user', [
                     'ip' => $device->ip_address,
                     'port' => (int) $device->port,
@@ -296,18 +302,18 @@ class BiometricController extends Controller
                 ->where('device_id', $fromDevice->id)
                 ->firstOrFail();
 
-            // 🔥 generate UID baru di device tujuan
             $newUid = (BiometricUsers::where('device_id', $toDevice->id)->max('uid') ?? 0) + 1;
 
-            // 🔥 cek existing di device tujuan (termasuk soft delete)
             $existing = BiometricUsers::withTrashed()
                 ->where('device_id', $toDevice->id)
                 ->where('user_id', $user->user_id)
                 ->first();
 
-            // 🔥 CREATE di device tujuan
             $createResponse = Http::timeout(120)
                 ->retry(3, 1000)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
                 ->post('http://127.0.0.1:8001/set-user', [
                     'ip' => $toDevice->ip_address,
                     'port' => (int) $toDevice->port,
@@ -328,7 +334,6 @@ class BiometricController extends Controller
                 throw new Exception($createResult['message'] ?? 'Gagal create user di device tujuan');
             }
 
-            // 🔥 HANDLE DB TARGET
             if ($existing) {
 
                 if ($existing->trashed()) {
@@ -353,9 +358,11 @@ class BiometricController extends Controller
                 ]);
             }
 
-            // 🔥 DELETE dari device asal
             $deleteResponse = Http::timeout(120)
                 ->retry(3, 1000)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
                 ->post('http://127.0.0.1:8001/delete-user', [
                     'ip' => $fromDevice->ip_address,
                     'port' => (int) $fromDevice->port,

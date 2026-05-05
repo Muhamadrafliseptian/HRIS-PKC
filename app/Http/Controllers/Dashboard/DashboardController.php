@@ -29,7 +29,9 @@ class DashboardController extends Controller
                     'shifts' => $totalShift,
                     'devices' => $deviceOnline,
                     'total_devices' => $totalDevice,
-                ]
+                ],
+                'open_key' => '',
+                'selected_key' => 'dashboard',
             ]);
 
         } catch (\Exception $e) {

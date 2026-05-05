@@ -51,6 +51,9 @@ class PullAttendanceJob implements ShouldQueue
             }
 
             $response = Http::timeout(600)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
                 ->post('http://127.0.0.1:8001/attendance', [
                     'ip' => $device->ip_address,
                     'port' => $device->port,

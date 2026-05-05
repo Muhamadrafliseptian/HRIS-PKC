@@ -106,9 +106,13 @@ class DevicesController extends Controller
         try {
             if ($payload->isNotEmpty()) {
 
-                $response = Http::timeout(10)->post('http://127.0.0.1:8001/check-multiple', [
-                    'devices' => $payload
-                ]);
+                $response = Http::timeout(10)
+                    ->withHeaders([
+                        'x-api-key' => env('ZK_API_KEY')
+                    ])
+                    ->post('http://127.0.0.1:8001/check-multiple', [
+                        'devices' => $payload
+                    ]);
 
                 if ($response->successful()) {
                     $json = $response->json();
@@ -175,10 +179,14 @@ class DevicesController extends Controller
         }
 
         try {
-            $res = Http::timeout(10)->get('http://127.0.0.1:8001/device-time', [
-                'ip' => $device->ip_address,
-                'port' => $device->port,
-            ]);
+            $res = Http::timeout(10)
+                ->withHeaders([
+                    'x-api-key' => env('ZK_API_KEY')
+                ])
+                ->get('http://127.0.0.1:8001/device-time', [
+                    'ip' => $device->ip_address,
+                    'port' => $device->port,
+                ]);
 
             if (!$res->successful()) {
                 return successHandler(array_merge($response, [
