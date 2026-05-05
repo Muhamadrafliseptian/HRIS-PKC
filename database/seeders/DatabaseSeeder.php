@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             EmployeeStatusSeeder::class,
             BranchConfigSeeder::class,
             BranchSeeder::class,
+            RoleSeeder::class,
+            MenuSeeder::class,
         ]);
     }
 }
