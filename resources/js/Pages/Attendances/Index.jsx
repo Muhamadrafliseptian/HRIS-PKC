@@ -112,45 +112,82 @@ function Index() {
       return <span style={{ color: "#ccc" }}>-</span>;
     }
 
+    const baseStyle = {
+      fontSize: 10,
+      padding: 2,
+      borderRadius: 4,
+      textAlign: "center",
+    };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {dayData.map((item, i) => {
-          if (item.type === "exception") {
-            return (
-              <div
-                key={i}
-                style={{
-                  background: "#e6f4ff",
-                  fontSize: 10,
-                  padding: 2,
-                  borderRadius: 4,
-                  textAlign: "center"
-                }}
-              >
-                {item.status}
-              </div>
-            );
+          const type = (item.type || "").toLowerCase().trim();
+
+          switch (type) {
+            case "exception":
+              return (
+                <div
+                  key={i}
+                  style={{
+                    ...baseStyle,
+                    background: "#e6f4ff",
+                  }}
+                >
+                  {item.status}
+                </div>
+              );
+
+            case "off":
+              return (
+                <div
+                  key={i}
+                  style={{
+                    ...baseStyle,
+                    background: "#fafafa",
+                    color: "#999",
+                    fontWeight: 500,
+                  }}
+                >
+                  OFF
+                </div>
+              );
+
+            case "alpha":
+              return (
+                <div
+                  key={i}
+                  style={{
+                    ...baseStyle,
+                    background: "#fff1f0",
+                    color: "#cf1322",
+                    fontWeight: 600,
+                  }}
+                >
+                  ALPHA
+                </div>
+              );
+
+            default: {
+              const bgColor = item.is_late ? "#fffbe6" : "#f6ffed";
+
+              return (
+                <div
+                  key={i}
+                  style={{
+                    ...baseStyle,
+                    background: bgColor,
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {item.shift ?? "-"}
+                  </div>
+                  <div>{item.check_in ?? "-"}</div>
+                  <div>{item.check_out ?? "-"}</div>
+                </div>
+              );
+            }
           }
-
-          // 🎯 hanya pakai is_late
-          const bgColor = item.is_late ? "#fffbe6" : "#f6ffed";
-
-          return (
-            <div
-              key={i}
-              style={{
-                background: bgColor,
-                borderRadius: 4,
-                padding: 2,
-                fontSize: 10,
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontWeight: 700 }}>{item.shift ?? "-"}</div>
-              <div>{item.check_in ?? "-"}</div>
-              <div>{item.check_out ?? "-"}</div>
-            </div>
-          );
         })}
       </div>
     );
@@ -223,8 +260,13 @@ function Index() {
 
   const dayColumns = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
+    const date = dayjs(filters.periode + "-" + String(day).padStart(2, "0"));
+    const dayName = date.format("dd");
     return {
-      title: <div style={{ textAlign: "center", fontSize: 12 }}>{day}</div>,
+      title: <div style={{ textAlign: "center", fontSize: 12 }}>
+        <div>{day}</div>
+        <div style={{ fontSize: 10, color: "#999" }}>{dayName}</div>
+      </div>,
       key: `day_${day}`,
       width: 64,
       align: "center",

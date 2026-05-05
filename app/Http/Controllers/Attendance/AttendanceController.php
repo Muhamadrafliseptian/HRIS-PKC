@@ -256,11 +256,39 @@ class AttendanceController extends Controller
         ];
     }
 
+    // private function mapDaily($date, $empAtt, $empShift, $empException)
+    // {
+    //     $exception = $empException->first(
+    //         fn($ex) =>
+    //         $date >= $ex->start_date && $date <= $ex->end_date
+    //     );
+
+    //     if ($exception) {
+    //         return [
+    //             [
+    //                 'type' => 'exception',
+    //                 'status' => $exception->status,
+    //                 'note' => $exception->note,
+    //             ]
+    //         ];
+    //     }
+
+    //     $dayRecords = $empAtt->where('date', $date)->values();
+
+    //     if ($dayRecords->isEmpty()) {
+    //         return [];
+    //     }
+
+    //     return $dayRecords->map(function ($rec) use ($date, $empShift) {
+    //         return $this->transformAttendance($rec, $date, $empShift);
+    //     })->toArray();
+    // }
+
     private function mapDaily($date, $empAtt, $empShift, $empException)
     {
+        // ================= EXCEPTION =================
         $exception = $empException->first(
-            fn($ex) =>
-            $date >= $ex->start_date && $date <= $ex->end_date
+            fn($ex) => $date >= $ex->start_date && $date <= $ex->end_date
         );
 
         if ($exception) {
@@ -273,15 +301,48 @@ class AttendanceController extends Controller
             ];
         }
 
+        // ================= ATTENDANCE =================
         $dayRecords = $empAtt->where('date', $date)->values();
 
-        if ($dayRecords->isEmpty()) {
-            return [];
+        if ($dayRecords->isNotEmpty()) {
+            return $dayRecords->map(function ($rec) use ($date, $empShift) {
+                return $this->transformAttendance($rec, $date, $empShift);
+            })->toArray();
         }
 
-        return $dayRecords->map(function ($rec) use ($date, $empShift) {
-            return $this->transformAttendance($rec, $date, $empShift);
-        })->toArray();
+        // ================= SHIFT (OFF / ALPHA) =================
+        $shift = $empShift->first(function ($s) use ($date) {
+            return \Carbon\Carbon::parse($s->date)->toDateString() === $date;
+        });
+
+        if ($shift && $shift->shift_snapshot) {
+
+            $snapshot = is_string($shift->shift_snapshot)
+                ? json_decode($shift->shift_snapshot, true)
+                : $shift->shift_snapshot;
+
+            $code = strtoupper($snapshot['code'] ?? '');
+
+            // OFF
+            if ($code === 'OFF') {
+                return [
+                    [
+                        'type' => 'off',
+                        'status' => 'OFF',
+                    ]
+                ];
+            }
+
+            // ADA SHIFT TAPI TIDAK HADIR = ALPHA
+            return [
+                [
+                    'type' => 'alpha',
+                    'status' => 'ALPHA',
+                ]
+            ];
+        }
+
+        return [];
     }
 
     private function transformAttendance($rec, $date, $empShift)
