@@ -54,23 +54,42 @@ class DevicesController extends Controller
             $status = 0;
             $time = null;
 
-            if ($this->isReachable($validated['ip_address'], $validated['port'], 1)) {
-
-                try {
-                    $zk = new ZKTeco($validated['ip_address'], $validated['port']);
-
-                    if ($zk->connect()) {
-                        $status = 1;
-                        $time = $zk->getTime();
-                        $zk->disconnect();
-                    }
-
-                } catch (Exception $e) {
-                    $status = 0;
-                }
-            }
-
             $device = BiometricDevice::create([
+                'branch' => $validated['branch'],
+                'biometric_category_id' => $validated['biometric_category_id'],
+                'name' => $validated['name'],
+                'ip_address' => $validated['ip_address'],
+                'port' => $validated['port'],
+                'status' => $status,
+                'last_sync' => $time ? now() : null,
+            ]);
+
+            return successHandler();
+
+        } catch (ValidationException $ev) {
+            return errorValidationHandler($ev);
+        } catch (Exception $e) {
+            return errorHandler($e);
+        }
+    }
+
+    public function update(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'branch' => 'required|exists:branchs,id',
+                'biometric_category_id' => 'required|exists:employee_status,id',
+                'name' => 'required|string|max:255',
+                'ip_address' => 'required|ip',
+                'port' => 'required|numeric',
+            ]);
+
+            $device = BiometricDevice::findOrFail($request->id);
+
+            $status = 0;
+            $time = null;
+
+            $device->update([
                 'branch' => $validated['branch'],
                 'biometric_category_id' => $validated['biometric_category_id'],
                 'name' => $validated['name'],
@@ -133,8 +152,10 @@ class DevicesController extends Controller
                 'name' => $device->name,
                 'ip' => $device->ip_address,
                 'port' => $device->port,
-                'branch' => $device->dtbranch->name ?? null,
-                'category' => $device->category->name ?? null,
+                'branch_id' => $device->branch,
+                'branch_name' => $device->dtbranch->name ?? null,
+                'category_id' => $device->biometric_category_id,
+                'category_name' => $device->category->name ?? null,
             ];
 
             if (!$device->ip_address || !$device->port) {

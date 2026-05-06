@@ -16,6 +16,14 @@ export const createDevices = (data = null) => {
     return Promise.resolve(request);
 }
 
+export const updateDevices = (data = null) => {
+    let request = axios({
+        headers: { "Accept": "application/json" },
+        method: "post", data: data, url: window.origin + '/biometric/devices/update'
+    });
+    return Promise.resolve(request);
+}
+
 export const checkDevices = (data = null, id) => {
     let request = axios({
         headers: { "Accept": "application/json" },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Button, Card, Breadcrumb } from "antd";
+import { Table, Tag, Button, Card, Breadcrumb, Dropdown } from "antd";
 import Main from "../../layout/Main";
 import Create from "./Modals/Create";
 import { PrimaryButton } from "../../components/Button";
@@ -7,6 +7,7 @@ import { readDevices, checkDevices } from "../../services/api/devices/devices";
 import "../../../css/main.css";
 import { Head } from "@inertiajs/react";
 import { showError } from "../../components/Alert";
+import Update from "./Modals/Update";
 
 function Index() {
   const [devices, setDevices] = useState([]);
@@ -74,10 +75,19 @@ function Index() {
     fetchDevices();
   }, []);
 
+  const getMenuItems = (data) => [
+    {
+      key: "update",
+      label: "Update",
+      icon: <i className="ti ti-key"></i>,
+      onClick: () => toggleModal("update", data),
+    },
+  ];
+
   const columns = [
-    { title: "Branch", dataIndex: "branch", key: "branch" },
+    { title: "Branch", dataIndex: "branch_name", key: "branch_name" },
     { title: "Device Name", dataIndex: "name", key: "name" },
-    { title: "Category", dataIndex: "category", key: "category" },
+    { title: "Category", dataIndex: "category_name", key: "category_name" },
     { title: "IP Address", dataIndex: "ip", key: "ip" },
     { title: "Port", dataIndex: "port", key: "port" },
     {
@@ -113,6 +123,22 @@ function Index() {
         </Button>
       ),
     },
+    {
+      width: "70px",
+      title: <i className="ti ti-settings"></i>,
+      align: "center",
+      render: (data) => (
+        <Dropdown
+          menu={{ items: getMenuItems(data) }}
+          trigger={["click"]}
+        >
+          <i
+            className="ti ti-dots-vertical"
+            style={{ cursor: "pointer", padding: "12px" }}
+          ></i>
+        </Dropdown>
+      ),
+    },
   ];
 
   const toggleModal = (what, data = null) => {
@@ -136,6 +162,7 @@ function Index() {
         handleClose={toggleModal}
         handleUpdate={fetchDevices}
       />
+      <Update open={modal.update.open} data={modal.update.data} handleClose={toggleModal} handleUpdate={fetchDevices} />
       <Card
         title="Devices"
         style={{ marginTop: "12px" }}

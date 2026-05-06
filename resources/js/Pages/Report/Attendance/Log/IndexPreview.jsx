@@ -38,9 +38,19 @@ function IndexPreview() {
       render: (val) => val || "-",
     },
     {
-      title: "Device",
-      render: (row) =>
-        row.dtbiouser?.biometric_user?.device?.name || "-",
+      title: "Devices",
+      render: (data) => {
+        const devices =
+          data.dtbiouser?.biometric_user
+            ?.map((u) => u.device?.name)
+            ?.filter(Boolean) || [];
+    
+        return (
+          <p className="tableSetUp">
+            {devices.length ? devices.join(", ") : "-"}
+          </p>
+        );
+      },
     },
     {
       title: "Branch",

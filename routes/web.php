@@ -31,6 +31,7 @@ Route::middleware(['throttle:120,1', 'maintenance'])->group(function () {
         Route::prefix('biometric')->group(function () {
             Route::prefix("devices")->middleware('permission:biometric-devices')->group(function () {
                 Route::post('read', [DevicesController::class, 'readDevices']);
+                Route::post('update', [DevicesController::class, 'update']);
                 Route::post('create', [DevicesController::class, 'create']);
                 Route::post('{id}/check', [DevicesController::class, 'checkDevices']);
                 Route::get('/', [DevicesController::class, 'index']);

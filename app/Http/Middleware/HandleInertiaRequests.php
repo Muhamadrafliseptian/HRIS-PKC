@@ -41,9 +41,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // 'ziggy' => fn () => [
+            //     ...(new Ziggy())->toArray(),
+            //     'location' => $request->url(),
+            // ],
             'ziggy' => fn () => [
-                ...(new Ziggy())->toArray(),
-                'location' => $request->url(),
+                ...(new Ziggy(url: 'https://eabsensi-bonjer.deveen.online'))->toArray(),
+                'location' => 'https://eabsensi-bonjer.deveen.online',
             ],
         ];
     }

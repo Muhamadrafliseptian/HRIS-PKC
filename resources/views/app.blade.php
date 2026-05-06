@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <link rel="preload" as="style"
         href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css"
@@ -7,12 +8,16 @@
     <noscript>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css">
     </noscript>
-    @routes
-    @viteReactRefresh
+    @routes(['url' => 'https://eabsensi-bonjer.deveen.online'])
+    @if (app()->environment('local'))
+        @viteReactRefresh
+    @endif
     @vite('resources/js/app.jsx')
     @inertiaHead
 </head>
+
 <body>
     @inertia
 </body>
+
 </html>

@@ -344,10 +344,9 @@ function Index() {
         rowKey="user_id"
         bordered
         loading={loading}
-        pagination={{ pageSize: 20 }}
         scroll={{ x: "max-content" }}
-        size="small"
         className="custom-table"
+        showExpandColumn={false}
       />
 
       {loading ? <LoadingComponent /> : null}

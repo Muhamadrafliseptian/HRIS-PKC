@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(prepend: [
+            \App\Http\Middleware\TrustProxies::class,
+            \App\Http\Middleware\ForceHttps::class,
+        ]);
+        
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
@@ -34,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Illuminate\Foundation\Configuration\Exceptions $exceptions) {
         $exceptions->render(function (Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->inertia()) {
-                return inertia('Auth/Login')
+                return inertia('Auth/Index')
                     ->with(['message' => 'Session expired, please login again'])
                     ->toResponse($request)
                     ->setStatusCode(409);

@@ -1,109 +1,170 @@
-import React, { useEffect } from "react";
-import { Head, useForm } from "@inertiajs/react";
-import { Row, Col, Form, Input, Button, Card, Typography } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
-import { useResponsive } from "../../Helpers/ResponsiveHelpers";
+import React, { useState } from "react";
+import { Head, useForm, router } from "@inertiajs/react";
+import {
+    Row,
+    Col,
+    Form,
+    Input,
+    Button,
+    Card,
+    Typography,
+    Spin
+} from "antd";
+import {
+    MailOutlined,
+    LockOutlined,
+    LoadingOutlined
+} from "@ant-design/icons";
+import { Turnstile } from "@marsidev/react-turnstile";
 import Swal from "sweetalert2";
+import { useResponsive } from "../../Helpers/ResponsiveHelpers";
 
 const { Title, Text } = Typography;
 
 function Index() {
     const { isMobile } = useResponsive();
 
-    const { data, setData, post, processing, errors } = useForm({
+    const [captchaToken, setCaptchaToken] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const { data, setData, errors } = useForm({
         email: "",
         password: "",
+        captcha: "",
     });
 
-    useEffect(() => {
-        if (errors.global) {
-            Swal.fire({
-                icon: "error",
-                title: "Login Gagal",
-                text: errors.global,
-            });
-        }
-    }, [errors]);
-
     const handleSubmit = () => {
-        post(route("login"));
+        if (!captchaToken) {
+            Swal.fire({
+                icon: "warning",
+                title: "Verifikasi dulu captcha",
+            });
+            return;
+        }
+
+        setLoading(true);
+
+        router.post(
+            route("login"),
+            {
+                email: data.email,
+                password: data.password,
+                captcha: captchaToken,
+            },
+            {
+                onFinish: () => setLoading(false),
+                onError: (err) => {
+                    setLoading(false);
+
+                    Swal.fire({
+                        icon: "error",
+                        title: err?.global || "Login gagal",
+                    });
+                },
+            }
+        );
     };
 
     return (
         <>
-            <Head title="Login - HRIS Puskesmas Kebon Jeruk" />
+            <Head title="Login - HRIS" />
 
-            <Row style={{ minHeight: "100vh" }}>
+            <Row style={{ minHeight: "100dvh" }}>
+                {/* LEFT SIDE */}
                 {!isMobile && (
                     <Col
                         lg={14}
                         style={{
-                            background: "linear-gradient(135deg, #0f172a, #1e3a8a)",
+                            background: "linear-gradient(135deg, #0b1220, #1e3a8a)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             color: "#fff",
-                            padding: "40px",
+                            padding: 40,
                         }}
                     >
-                        <div style={{ maxWidth: 420, textAlign: "center" }}>
-
+                        <div style={{ textAlign: "center", maxWidth: 700 }}>
                             <div style={{ display: "flex", justifyContent: "center" }}>
                                 <img
                                     src="/images/logo.png"
-                                    alt="Logo Puskesmas"
                                     style={{
-                                        height: 150,
-                                        marginBottom: 20,
+                                        height: 140,
+                                        marginBottom: 24,
+                                        filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.3))",
                                     }}
                                 />
                             </div>
 
                             <Title style={{ color: "#fff", marginBottom: 8 }}>
-                                HRIS Puskesmas
+                                E-Absensi Puskesmas Kebon Jeruk
                             </Title>
 
-                            <Text style={{ color: "#cbd5f5", fontSize: 16 }}>
-                                Sistem Informasi Kepegawaian & Absensi
-                                untuk mendukung pelayanan kesehatan yang lebih baik.
+                            <Text style={{ color: "#cbd5f5", fontSize: 15 }}>
+                                Sistem manajemen absensi dan kepegawaian
+                                terintegrasi untuk operasional yang lebih efisien.
                             </Text>
                         </div>
                     </Col>
                 )}
 
+                {/* RIGHT SIDE */}
                 <Col
                     xs={24}
                     lg={10}
                     style={{
                         display: "flex",
+                        alignItems: isMobile ? "flex-start" : "center",
                         justifyContent: "center",
-                        alignItems: "center",
-                        padding: "24px",
-                        background: "#f1f5f9",
+                        background: isMobile
+                            ? "#f1f5f9"
+                            : "linear-gradient(180deg, #f1f5f9, #e2e8f0)",
+                        padding: isMobile ? 16 : 24,
+                        paddingTop: isMobile ? 40 : 24,
                     }}
                 >
                     <Card
                         style={{
                             width: "100%",
-                            maxWidth: 380,
-                            borderRadius: 16,
-                            boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
-                            border: "none",
+                            maxWidth: 400,
+                            borderRadius: isMobile ? 14 : 18,
+                            border: "1px solid #e5e7eb",
+                            boxShadow: isMobile
+                                ? "0 10px 25px rgba(0,0,0,0.05)"
+                                : "0 20px 50px rgba(0,0,0,0.08)",
                         }}
-                        bodyStyle={{ padding: "32px" }}
+                        styles={{
+                            body: {
+                                padding: isMobile ? 20 : 32,
+                            },
+                        }}
                     >
+                        {/* LOGO MOBILE */}
+                        {isMobile && (
+                            <div style={{ textAlign: "center", marginBottom: 16 }}>
+                                <img src="/images/logo.png" style={{ height: 60 }} />
+                            </div>
+                        )}
+
                         {/* HEADER */}
-                        <div style={{ marginBottom: 24, textAlign: "center" }}>
-                            <Title level={3} style={{ marginBottom: 0, color: "#1e3a8a" }}>
+                        <div
+                            style={{
+                                textAlign: "center",
+                                marginBottom: isMobile ? 20 : 28,
+                            }}
+                        >
+                            <Title level={isMobile ? 4 : 3} style={{ marginBottom: 4 }}>
                                 Welcome Back
                             </Title>
-
-                            <Text type="secondary">
-                                Silakan login ke sistem HRIS
+                            <Text
+                                type="secondary"
+                                style={{ fontSize: isMobile ? 13 : 14 }}
+                            >
+                                Login untuk masuk ke dashboard
                             </Text>
                         </div>
 
-                        <Form layout="vertical" onFinish={handleSubmit}>
+                        <Form layout="vertical">
+                            {/* EMAIL */}
                             <Form.Item
                                 label="Email"
                                 validateStatus={errors.email ? "error" : ""}
@@ -111,16 +172,18 @@ function Index() {
                             >
                                 <Input
                                     prefix={<MailOutlined />}
-                                    placeholder="Masukkan email"
+                                    placeholder="you@example.com"
                                     value={data.email}
                                     onChange={(e) =>
                                         setData("email", e.target.value)
                                     }
-                                    size="large"
-                                    disabled={processing}
+                                    size={isMobile ? "middle" : "large"}
+                                    disabled={loading}
+                                    style={{ borderRadius: 10 }}
                                 />
                             </Form.Item>
 
+                            {/* PASSWORD */}
                             <Form.Item
                                 label="Password"
                                 validateStatus={errors.password ? "error" : ""}
@@ -128,31 +191,73 @@ function Index() {
                             >
                                 <Input.Password
                                     prefix={<LockOutlined />}
-                                    placeholder="Masukkan password"
+                                    placeholder="••••••••"
                                     value={data.password}
                                     onChange={(e) =>
                                         setData("password", e.target.value)
                                     }
-                                    size="large"
-                                    disabled={processing}
+                                    size={isMobile ? "middle" : "large"}
+                                    disabled={loading}
+                                    style={{ borderRadius: 10 }}
                                 />
                             </Form.Item>
 
-                            <Button
-                                htmlType="submit"
-                                block
-                                size="large"
-                                loading={processing}
+                            {/* CAPTCHA */}
+                            <div
                                 style={{
-                                    marginTop: 8,
-                                    borderRadius: 10,
-                                    height: 45,
-                                    background: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
-                                    border: "none",
-                                    fontWeight: 600,
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    marginTop: 6,
+                                    marginBottom: 16,
                                 }}
                             >
-                                Login
+                                <Turnstile
+                                    siteKey={import.meta.env.VITE_SITE_KEY_CAPTCHA}
+                                    onSuccess={(token) =>
+                                        setCaptchaToken(token)
+                                    }
+                                    onExpire={() => setCaptchaToken("")}
+                                    options={{ theme: "light" }}
+                                />
+                            </div>
+
+                            {/* BUTTON */}
+                            <Button
+                                onClick={handleSubmit}
+                                block
+                                size={isMobile ? "middle" : "large"}
+                                disabled={!captchaToken || loading}
+                                style={{
+                                    height: isMobile ? 42 : 46,
+                                    borderRadius: 12,
+                                    fontWeight: 600,
+                                    fontSize: isMobile ? 14 : 15,
+                                    background: loading
+                                        ? "#94a3b8"
+                                        : "linear-gradient(135deg,#1e3a8a,#3b82f6)",
+                                    border: "none",
+                                    color: "#fff",
+                                    boxShadow:
+                                        "0 10px 25px rgba(59,130,246,0.3)",
+                                }}
+                            >
+                                {loading ? (
+                                    <>
+                                        <Spin
+                                            indicator={
+                                                <LoadingOutlined
+                                                    style={{ color: "#fff" }}
+                                                    spin
+                                                />
+                                            }
+                                            size="small"
+                                            style={{ marginRight: 8 }}
+                                        />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    "Login"
+                                )}
                             </Button>
                         </Form>
                     </Card>

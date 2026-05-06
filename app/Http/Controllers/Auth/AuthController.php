@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Exception;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
@@ -21,27 +22,36 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        try {
-            $request->validate([
-                'email' => 'required|string|email|max:255',
-                'password' => 'required|string',
-            ]);
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+            'captcha' => 'required',
+        ]);
 
-            $credentials = $request->only('email', 'password');
+        $verify = Http::asForm()->post(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            [
+                'secret' => env('SECRET_KEY_CAPTCHA'),
+                'response' => $request->captcha,
+                'remoteip' => $request->ip(),
+            ]
+        );
 
-            if (Auth::attempt($credentials)) {
-                $request->session()->regenerate();
-                return redirect()->route('dashboard');
-            }
-
+        if (!($verify->json('success'))) {
             return back()->withErrors([
-                'global' => 'Email atau password tidak cocok.',
+                'global' => 'Captcha tidak valid',
             ]);
-        } catch (ValidationException $ev) {
-            return back()->withErrors($ev->errors());
         }
-    }
 
+        if (Auth::attempt($request->only('email', 'password'))) {
+            $request->session()->regenerate();
+            return redirect()->route('dashboard');
+        }
+
+        return back()->withErrors([
+            'global' => 'Email atau password salah',
+        ]);
+    }
     public function logout(Request $request)
     {
         try {
