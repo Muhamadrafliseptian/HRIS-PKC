@@ -28,19 +28,13 @@ class AppServiceProvider extends ServiceProvider
     // }
 
     public function boot()
-{
-    if (app()->environment('production')) {
-        URL::forceScheme('https');
-
-        if (
-            isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
-            $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https'
-        ) {
-            $_SERVER['HTTPS'] = 'on';
-            $_SERVER['SERVER_PORT'] = 443;
+    {
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        } else {
+            URL::forceScheme('http');
         }
     }
-}
 
     /**
      * Configure default behaviors for production-ready applications.
@@ -53,7 +47,8 @@ class AppServiceProvider extends ServiceProvider
             app()->isProduction(),
         );
 
-        Password::defaults(fn (): ?Password => app()->isProduction()
+        Password::defaults(
+            fn(): ?Password => app()->isProduction()
             ? Password::min(12)
                 ->mixedCase()
                 ->letters()

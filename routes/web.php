@@ -15,6 +15,27 @@ use App\Http\Controllers\Shift\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['throttle:120,1', 'maintenance'])->group(function () {
+    Route::get('/dev/clear-all', function () {
+        if (!app()->environment('local')) {
+            abort(403);
+        }
+        return [
+            'config-clear' => Artisan::call('config:clear'),
+            'cache-clear' => Artisan::call('cache:clear'),
+            'route-clear' => Artisan::call('route:clear'),
+            'view-clear' => Artisan::call('view:clear'),
+            'optimize-clear' => Artisan::call('optimize:clear'),
+        ];
+    });
+    Route::get('/debug', function () {
+        return [
+            'url' => request()->fullUrl(),
+            'scheme' => request()->getScheme(),
+            'secure' => request()->secure(),
+            'xfp' => request()->header('x-forwarded-proto'),
+            'server_https' => $_SERVER['HTTPS'] ?? null,
+        ];
+    });
     Route::get('/login', [AuthController::class, 'index'])->name('login_page');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
