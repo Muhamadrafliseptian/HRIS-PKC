@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Employee;
 use App\Models\EmployeeService;
 use App\Models\EmployeeShift;
+use App\Models\EmployeeStatus;
 use App\Models\ShiftCategory;
 use App\Models\Shifts;
 use Carbon\Carbon;
@@ -23,6 +24,13 @@ class AssignmentShiftController extends Controller
                 return [
                     'value' => $branchs->id,
                     'label' => $branchs->name
+                ];
+            });
+
+            $statusEmployee = EmployeeStatus::get(['id', 'name'])->map(function ($services) {
+                return [
+                    'value' => $services->id,
+                    'label' => $services->name
                 ];
             });
 
@@ -66,6 +74,7 @@ class AssignmentShiftController extends Controller
             $response = [
                 'branchs' => $branchs,
                 'status' => $status,
+                'status_employees' => $statusEmployee,
                 'shift_categories' => $shiftCategory,
                 'services' => $services,
                 'periods' => $periods
@@ -84,6 +93,7 @@ class AssignmentShiftController extends Controller
             $request->validate([
                 'branch' => 'required',
                 'service' => 'required',
+                'status' => 'required',
                 'month' => 'required|date_format:Y-m',
                 'page' => 'nullable|integer|min:1',
             ]);
@@ -94,6 +104,9 @@ class AssignmentShiftController extends Controller
                 })
                 ->when($request->service, function ($q) use ($request) {
                     $q->where('employee_services', $request->service);
+                })
+                ->when($request->status, function ($q) use ($request) {
+                    $q->where('employee_status', $request->status);
                 })
                 ->orderBy('name')
                 ->paginate(10);

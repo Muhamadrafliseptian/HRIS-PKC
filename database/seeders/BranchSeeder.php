@@ -114,6 +114,32 @@ class BranchSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'name' => 'Security',
+                'province' => '31',
+                'city' => '3174',
+                'district' => '3174060',
+                'village' => '3174060006',
+                'detail' => 'Security',
+                'status' => true,
+                'created_by' => 1,
+                'updated_by' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Cleaning Services',
+                'province' => '31',
+                'city' => '3174',
+                'district' => '3174060',
+                'village' => '3174060006',
+                'detail' => 'Cleaning Services',
+                'status' => true,
+                'created_by' => 1,
+                'updated_by' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
         DB::table('branchs')->insert($branches);

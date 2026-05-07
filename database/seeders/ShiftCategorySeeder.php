@@ -36,6 +36,14 @@ class ShiftCategorySeeder extends Seeder
                 'name' => 'OFF',
                 'description' => 'Libur / Hari Tidak Masuk',
             ],
+            [
+                'name' => 'Security',
+                'description' => 'Security',
+            ],
+            [
+                'name' => 'Cleaning Services',
+                'description' => 'Cleaning Services',
+            ],
         ];
 
         foreach ($categories as $cat) {

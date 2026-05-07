@@ -66,7 +66,11 @@ class AttendanceController extends Controller
         try {
             $job = PullAttendanceJob::dispatch($request->branch, $request->periode, $request->employee_services);
 
-            Cache::put('pull_attendance_status', 'processing', now()->addMinutes(10));
+            // Cache::put('pull_attendance_status', 'processing', now()->addMinutes(10));
+            Cache::put('pull_attendance_status', [
+                'state' => 'processing',
+                'message' => null
+            ], now()->addMinutes(10));
 
             return successHandler();
         } catch (Exception $err) {

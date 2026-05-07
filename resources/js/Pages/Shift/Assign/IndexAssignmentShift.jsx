@@ -34,13 +34,15 @@ function IndexAssignmentShift() {
   const [filters, setFilters] = useState({
     branch: "",
     periode: dayjs().format("YYYY-MM"),
-    service: ''
+    service: '',
+    status: '',
   });
 
   const [utils, setUtils] = useState({
     branchs: [],
     periods: [],
-    services: []
+    services: [],
+    statuses: []
   });
 
   useEffect(() => {
@@ -48,11 +50,12 @@ function IndexAssignmentShift() {
       branchs: pages?.branchs,
       periods: pages?.periods,
       services: pages?.services,
+      statuses: pages?.status_employees,
     });
   }, []);
 
   useEffect(() => {
-    if (filters.branch, filters.service) readShift();
+    if (filters.branch, filters.service, filters.status) readShift();
   }, [filters]);
 
   const readShift = async () => {
@@ -63,6 +66,7 @@ function IndexAssignmentShift() {
       formData.append("branch", filters.branch);
       formData.append("service", filters.service);
       formData.append("month", filters.periode);
+      formData.append("status", filters.status);
       formData.append("page", filters.page || 1);
       let response = await readAssignShift(formData);
 
@@ -368,6 +372,17 @@ function IndexAssignmentShift() {
                 value={filters.branch}
                 onChange={(e) =>
                   setFilters({ ...filters, branch: e })
+                }
+                style={{ width: 180 }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={8} lg={4}>
+              <FormSelect
+                label="Status Karyawan"
+                options={utils.statuses}
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e })
                 }
                 style={{ width: 180 }}
               />
