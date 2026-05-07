@@ -99,7 +99,7 @@ export default function Import(props) {
                 <Form layout='vertical'>
                     <Row gutter={12}>
                         <Col span={24}>
-                            <FormSelect label={"Employee Services"}
+                            <FormSelect label={"Unit Pelayanan"}
                                 options={utils.services}
                                 rules={[{ required: true }]}
                                 value={form.service}
@@ -115,7 +115,7 @@ export default function Import(props) {
                             />
                         </Col>
                         <Col span={24}>
-                            <FormSelect label={"Employee Status"}
+                            <FormSelect label={"Status Karyawan"}
                                 options={utils.categories}
                                 rules={[{ required: true }]}
                                 value={form.category}
@@ -131,7 +131,7 @@ export default function Import(props) {
                             />
                         </Col>
                         <Col span={24}>
-                            <FormSelect label={"Branch"}
+                            <FormSelect label={"Unit Kerja"}
                                 options={utils.branchs}
                                 rules={[{ required: true }]}
                                 value={form.branch}

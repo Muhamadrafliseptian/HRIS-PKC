@@ -352,7 +352,7 @@ function IndexAssignmentShift() {
             </Col>
             <Col xs={24} sm={12} md={8} lg={4}>
               <FormSelect
-                label="Service"
+                label="Unit Pelayanan"
                 options={utils.services}
                 value={filters.service}
                 onChange={(e) =>
@@ -363,7 +363,7 @@ function IndexAssignmentShift() {
             </Col>
             <Col xs={24} sm={12} md={8} lg={4}>
               <FormSelect
-                label="Branch"
+                label="Unit Kerja"
                 options={utils.branchs}
                 value={filters.branch}
                 onChange={(e) =>

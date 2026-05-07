@@ -95,7 +95,7 @@ function Index() {
       render: (data) => <p className="tableSetUp">{data.dtstatus?.name}</p>,
     },
     {
-      title: "Services",
+      title: "Unit Pelayanan",
       render: (data) => <p className="tableSetUp">{data.dtservice?.name}</p>,
     },
     {
@@ -189,7 +189,7 @@ function Index() {
           <Row gutter={12}>
             <Col xs={24} sm={24} md={12} lg={4} xl={4}>
               <FormSelect
-                label={"Branch"}
+                label={"Unit Kerja"}
                 options={utils.branchs}
                 disabled={loading}
                 value={filters.branch}
@@ -200,7 +200,7 @@ function Index() {
             </Col>
             <Col xs={24} sm={24} md={12} lg={4} xl={4}>
               <FormSelect
-                label={"Services"}
+                label={"Unit Pelayanan"}
                 options={utils.services}
                 disabled={loading}
                 value={filters.service}
@@ -213,7 +213,7 @@ function Index() {
               <FormSelect
                 value={filters.status}
                 options={utils.categories}
-                label={"Status"}
+                label={"Status Karyawan"}
                 onChange={(e) =>
                   handleChangeFilter("status", e)
                 }

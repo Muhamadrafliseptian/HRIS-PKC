@@ -139,7 +139,7 @@ function Index() {
       key: "uid",
     },
     {
-      title: "Branch",
+      title: "Unit Kerja",
       key: "branch",
       render: (_, record) => {
         const branchId = record.device?.branch;

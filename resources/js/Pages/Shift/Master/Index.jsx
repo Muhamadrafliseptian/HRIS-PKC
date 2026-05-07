@@ -143,7 +143,7 @@ function Index() {
             render: (data) => <p className="tableSetUp">{data.name}</p>,
         },
         {
-            title: "Category",
+            title: "Unit Pelayanan",
             render: (data) => <p className="tableSetUp">{data?.category?.name}</p>,
         },
         {
@@ -254,7 +254,7 @@ function Index() {
             <Card
                 title="Master Shifts"
                 style={{ marginTop: "12px" }}
-                extra={renderUtilityButton()}
+                // extra={renderUtilityButton()}
             >
                 <Table
                     style={{ width: "100%" }}

@@ -5,7 +5,7 @@ import Main from "../../layout/Main";
 import "../../../css/main.css";
 import { LoadingComponent } from '../../components/Loading';
 import { Head, usePage } from "@inertiajs/react";
-import { FormSearch, FormSelect } from "../../components/Form";
+import { FormDatePicker, FormSearch, FormSelect } from "../../components/Form";
 import dayjs from "dayjs";
 import { PrimaryButton } from '../../components/Button'
 function Index() {
@@ -203,6 +203,7 @@ function Index() {
       date,
     });
 
+
     form.setFieldsValue({
       start_date: dayjs(date),
       end_date: dayjs(date),
@@ -215,20 +216,25 @@ function Index() {
     try {
       const payload = {
         employee_id: selectedCell.employee_id,
-        start_date: values.start_date.format("YYYY-MM-DD"),
-        end_date: values.end_date.format("YYYY-MM-DD"),
+        start_date: selectedCell.date,
+        end_date: selectedCell.date,
+        date: selectedCell.date,
         status: values.status,
-        note: values.note,
+        note: values.note || "null",
       };
 
-      await storeAttendanceException(payload);
+      let response = await storeAttendanceException(payload);
 
-      message.success("Berhasil simpan");
-      setModalOpen(false);
-      form.resetFields();
-      handleRead();
+      if (response.data.status) {
+        message.success("Berhasil simpan");
+        setModalOpen(false);
+        form.resetFields();
+        handleRead();
+      }
     } catch (err) {
-      message.error("Gagal simpan");
+      setModalOpen(false);
+      message.error(err.response.data.message);
+      form.resetFields();
     }
   };
 
@@ -304,7 +310,7 @@ function Index() {
       <Form layout="vertical" style={{ marginBottom: 12 }}>
         <Row gutter={12}>
           <Col xs={24} sm={12} md={8} lg={4}>
-            <FormSelect label="Services" options={utils.services}
+            <FormSelect label="Unit Pelayanan" options={utils.services}
               value={filters.employee_services}
               onChange={(e) =>
                 handleChangeFilter("employee_services", e)
@@ -352,7 +358,7 @@ function Index() {
       {loading ? <LoadingComponent /> : null}
 
       <Modal
-        title="Input note Absensi"
+        title="Input Note Absensi"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}
@@ -382,37 +388,13 @@ function Index() {
             </Col>
           </Row>
         </Card>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-        >
-          <Row gutter={12}>
-            <Col span={12}>
-              <Form.Item
-                name="start_date"
-                label="Tanggal Mulai"
-                rules={[{ required: true, message: "Wajib diisi" }]}
-              >
-                <DatePicker
-                  style={{ width: "100%" }}
-                  disabledDate={(current) =>
-                    current && current < form.getFieldValue("start_date")
-                  }
-                />
-              </Form.Item>
-            </Col>
 
-            <Col span={12}>
-              <Form.Item
-                name="end_date"
-                label="Tanggal Selesai"
-                rules={[{ required: true, message: "Wajib diisi" }]}
-              >
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+
+          <Form.Item name="date" hidden>
+            <Input />
+          </Form.Item>
+
           <Form.Item
             name="status"
             label="Status Kehadiran"
@@ -432,12 +414,14 @@ function Index() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="note" label="note Tambahan">
+
+          <Form.Item name="note" label="Note Tambahan">
             <Input.TextArea
               rows={3}
               placeholder="Contoh: Dinas luar ke kantor pusat"
             />
           </Form.Item>
+
         </Form>
       </Modal>
     </Card>

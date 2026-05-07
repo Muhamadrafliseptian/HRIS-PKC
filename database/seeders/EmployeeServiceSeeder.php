@@ -44,6 +44,18 @@ class EmployeeServiceSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'name' => 'Security',
+                'description' => 'Petugas keamanan mobile (shift & patroli)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Cleaning Service',
+                'description' => 'Petugas kebersihan mobile (area shifting)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
         DB::table('employee_services')->insert($categories);

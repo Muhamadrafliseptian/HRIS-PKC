@@ -25,21 +25,16 @@ class EmployeeImport implements ToCollection, WithHeadingRow
     public function collection(Collection $rows)
     {
         foreach ($rows as $row) {
-
             $userId = (string) (int) $row['ac_no'];
             $name = $row['name'];
 
             if (!$userId){
-                \Log::warning('Skip: user_id kosong');
                 continue;
             }
 
             $biometric = BiometricUsers::where('user_id', $userId)->first();
 
             if (!$biometric) {
-                \Log::warning('Skip: user_id tidak ditemukan di biometric_users', [
-                    'user_id' => $userId,
-                ]);
                 continue;
             }
             if (!$biometric)

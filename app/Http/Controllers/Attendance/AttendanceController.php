@@ -114,44 +114,29 @@ class AttendanceController extends Controller
 
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
+                'date' => 'required|date',
                 'status' => 'required|string',
                 'note' => 'nullable|string',
             ]);
 
             $employeeId = $validated['employee_id'];
-            $start = Carbon::parse($validated['start_date'])->startOfDay();
-            $end = Carbon::parse($validated['end_date'])->endOfDay();
+            $date = Carbon::parse($validated['date'])->toDateString();
 
-            // ================= DELETE OLD =================
             AttendanceException::where('employee', $employeeId)
-                ->whereBetween('start_date', [
-                    $start->toDateString(),
-                    $end->toDateString()
-                ])
+                ->where('start_date', $date)
                 ->delete();
 
-            $rows = [];
+                AttendanceException::create([
+                'employee' => $employeeId,
+                'start_date' => $date,
+                'end_date' => $date,
+                'status' => $validated['status'],
+                'note' => $validated['note'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-            foreach ($start->copy()->daysUntil($end->copy()->addDay()) as $date) {
-
-                $rows[] = [
-                    'employee' => $employeeId,
-                    'start_date' => $date->toDateString(),
-                    'end_date' => $date->toDateString(),
-                    'status' => $validated['status'],
-                    'note' => $validated['note'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            foreach (array_chunk($rows, 100) as $chunk) {
-                AttendanceException::insert($chunk);
-            }
-
-            return successHandler('Berhasil update note');
+            return successHandler();
 
         } catch (Exception $e) {
             return errorHandler($e);

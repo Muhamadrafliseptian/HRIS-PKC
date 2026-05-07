@@ -23,7 +23,7 @@ function Index() {
 
   const columns = [
     {
-      title: 'Nama Branch',
+      title: 'Unit Kerja',
       dataIndex: 'name',
       key: 'name',
     },
