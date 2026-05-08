@@ -300,6 +300,7 @@ function Index() {
           className="custom-table"
           showExpandColumn={false}
           scroll={{ x: "max-content" }}
+          loading={loading}
         />
       </Card>
       {loading ? <LoadingComponent /> : null}

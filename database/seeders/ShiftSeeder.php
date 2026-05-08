@@ -32,6 +32,12 @@ class ShiftSeeder extends Seeder
             ['code' => 'S09', 'name' => '14:00 - 20:30 (RB Siang)', 'type' => 'single', 'category' => 'RUANG BERSALIN'],
             ['code' => 'S10', 'name' => '20:30 - 07:30 (RB Malam)', 'type' => 'single', 'category' => 'RUANG BERSALIN'],
 
+            ['code' => 'S21', 'name' => '06:00 - 18:00 (Security Pagi)', 'type' => 'single', 'category' => 'SECURITY'],
+            ['code' => 'S22', 'name' => '18:00 - 06:00 (Security Malam)', 'type' => 'single', 'category' => 'SECURITY'],
+
+            ['code' => 'S23', 'name' => '06:00 - 18:00 (CS Pagi)', 'type' => 'single', 'category' => 'CLEANING SERVICES'],
+            ['code' => 'S24', 'name' => '18:00 - 06:00 (CS Malam)', 'type' => 'single', 'category' => 'CLEANING SERVICES'],
+
             // ================= DOUBLE =================
             ['code' => 'S11', 'name' => '07:30 - 21:00 (UGD PS)', 'type' => 'double', 'category' => 'UGD'],
             ['code' => 'S12', 'name' => '14:00 - 07:30 (UGD SM)', 'type' => 'double', 'category' => 'UGD'],
@@ -84,6 +90,10 @@ class ShiftSeeder extends Seeder
             ['code' => 'S08', 'in' => '07:30', 'out' => '14:00', 'cross' => 0],
             ['code' => 'S09', 'in' => '14:00', 'out' => '20:30', 'cross' => 0],
             ['code' => 'S10', 'in' => '20:30', 'out' => '07:30', 'cross' => 1],
+            ['code' => 'S21', 'in' => '06:00', 'out' => '18:00', 'cross' => 0],
+            ['code' => 'S22', 'in' => '18:00', 'out' => '06:00', 'cross' => 1],
+            ['code' => 'S23', 'in' => '06:00', 'out' => '18:00', 'cross' => 0],
+            ['code' => 'S24', 'in' => '18:00', 'out' => '06:00', 'cross' => 1],
 
             // ===== DOUBLE =====
             ['code' => 'S11', 'in' => '07:30', 'out' => '21:00', 'cross' => 0],

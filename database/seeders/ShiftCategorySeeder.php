@@ -37,11 +37,11 @@ class ShiftCategorySeeder extends Seeder
                 'description' => 'Libur / Hari Tidak Masuk',
             ],
             [
-                'name' => 'Security',
+                'name' => 'SECURITY',
                 'description' => 'Security',
             ],
             [
-                'name' => 'Cleaning Services',
+                'name' => 'CLEANING SERVICES',
                 'description' => 'Cleaning Services',
             ],
         ];
