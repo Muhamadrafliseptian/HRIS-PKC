@@ -51,28 +51,53 @@ function Index() {
   };
 
   const startPolling = () => {
+
+    setLoading(true);
+
     const interval = setInterval(async () => {
+
       try {
-        setLoading(true);
+
         const res = await checkPullStatus();
-        const status = res.data.params.status;
-        const messageText = res.data.params.message;
+
+        console.log(res.data);
+
+        const status =
+          res.data?.params?.status ||
+          res.data?.status;
+
+        const messageText =
+          res.data?.params?.message ||
+          res.data?.message;
 
         if (status === "done") {
+
           clearInterval(interval);
+
           setLoading(false);
+
           message.success("Sync berhasil ✅");
+
           window.location.reload();
+
         } else if (status === "failed") {
+
           clearInterval(interval);
+
           setLoading(false);
+
           message.error(messageText || "Sync gagal ❌");
         }
+
       } catch (err) {
+
         clearInterval(interval);
+
         setLoading(false);
-        message.error(err.response.data.message);
+
+        message.error(err.response?.data?.message || "Polling error");
       }
+
     }, 3000);
   };
 

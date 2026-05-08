@@ -220,7 +220,8 @@ class AttendanceReportController extends Controller
 
         $query = AttendanceLogs::with([
             'dtbiouser.biometricUser.device',
-            'dtbiouser.dtbranch'
+            'dtbiouser.dtbranch',
+            'devices'
         ]);
 
         if (!empty($ids)) {
@@ -251,6 +252,66 @@ class AttendanceReportController extends Controller
             return $items->values();
         });
     }
+    // private function getKehadiranData($request)
+    // {
+    //     $ids = json_decode($request->ids, true);
+
+    //     $shiftQuery = EmployeeShift::with('employee');
+
+    //     if (!empty($ids)) {
+    //         $shiftQuery->whereIn('employee_id', $ids);
+    //     }
+
+    //     if ($request->branch) {
+    //         $shiftQuery->where('branch', $request->branch);
+    //     }
+
+    //     if ($request->start_date && $request->end_date) {
+    //         $shiftQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+    //     }
+
+    //     $shifts = $shiftQuery->orderBy('date')->get();
+
+    //     $attendance = Attendance::whereBetween('date', [
+    //         $request->start_date,
+    //         $request->end_date
+    //     ])->get()->keyBy(
+    //             fn($item) =>
+    //             $item->employee . '_' . \Carbon\Carbon::parse($item->date)->format('Y-m-d')
+    //         );
+
+    //     return $shifts->map(function ($shift) use ($attendance) {
+
+    //         $key = $shift->employee_id . '_' . \Carbon\Carbon::parse($shift->date)->format('Y-m-d');
+    //         $att = $attendance[$key] ?? null;
+
+    //         $snapshot = is_string($shift->shift_snapshot)
+    //             ? json_decode($shift->shift_snapshot, true)
+    //             : $shift->shift_snapshot;
+
+    //         return (object) [
+    //             'employee_id' => $shift->employee_id,
+    //             'employee_name' => $shift->employee->name ?? '-',
+    //             'date' => $shift->date,
+    //             'is_holiday' => $shift->is_holiday,
+
+    //             'jam_kerja' =>
+    //                 !empty($snapshot['segments'])
+    //                 ? ($snapshot['segments'][0]['clock_in'] ?? '-') . ' - ' . ($snapshot['segments'][0]['clock_out'] ?? '-')
+    //                 : 'OFF',
+
+    //             'check_in' => $att?->first_scan_at,
+    //             'check_out' => $att?->last_scan_at,
+
+    //             'late_minutes' => $att?->late_minutes ?? 0,
+    //             'early_out_minutes' => $att?->early_out_minutes ?? 0,
+    //             'total_work_minutes' => $att?->total_work_minutes ?? 0,
+
+    //             'status' => $this->resolveStatus($snapshot, $att),
+    //         ];
+    //     })->groupBy('employee_id');
+    // }
+
     private function getKehadiranData($request)
     {
         $ids = json_decode($request->ids, true);
@@ -266,51 +327,105 @@ class AttendanceReportController extends Controller
         }
 
         if ($request->start_date && $request->end_date) {
-            $shiftQuery->whereBetween('date', [$request->start_date, $request->end_date]);
+            $shiftQuery->whereBetween('date', [
+                $request->start_date,
+                $request->end_date
+            ]);
         }
 
-        $shifts = $shiftQuery->orderBy('date')->get();
+        $shifts = $shiftQuery
+            ->orderBy('date')
+            ->get();
 
-        $attendance = Attendance::whereBetween('date', [
+        $attendance = Attendance::with(['inDevice', 'outDevice', 'inBranch', 'outBranch'])->whereBetween('date', [
             $request->start_date,
             $request->end_date
         ])->get()->keyBy(
                 fn($item) =>
-                $item->employee . '_' . \Carbon\Carbon::parse($item->date)->format('Y-m-d')
+                $item->employee . '_' .
+                Carbon::parse($item->date)->format('Y-m-d')
             );
 
-        return $shifts->map(function ($shift) use ($attendance) {
+        $exceptions = AttendanceException::where(function ($q) use ($request) {
 
-            $key = $shift->employee_id . '_' . \Carbon\Carbon::parse($shift->date)->format('Y-m-d');
+            $q->whereBetween('start_date', [
+                $request->start_date,
+                $request->end_date
+            ])->orWhereBetween('end_date', [
+                        $request->start_date,
+                        $request->end_date
+                    ]);
+
+        })->get();
+
+        return $shifts->map(function ($shift) use ($attendance, $exceptions) {
+
+            $date = Carbon::parse($shift->date)->format('Y-m-d');
+
+            $key = $shift->employee_id . '_' . $date;
+
             $att = $attendance[$key] ?? null;
+
+            $exception = $exceptions->first(function ($ex) use ($shift) {
+
+                $start = Carbon::parse($ex->start_date)->startOfDay();
+
+                $end = Carbon::parse($ex->end_date)->endOfDay();
+
+                $date = Carbon::parse($shift->date);
+
+                return $ex->employee == $shift->employee_id
+                    && $date->between($start, $end);
+            });
 
             $snapshot = is_string($shift->shift_snapshot)
                 ? json_decode($shift->shift_snapshot, true)
                 : $shift->shift_snapshot;
 
+            $segment = $snapshot['segments'][0] ?? null;
+
             return (object) [
+
                 'employee_id' => $shift->employee_id,
+
                 'employee_name' => $shift->employee->name ?? '-',
-                'date' => $shift->date,
+
+                'date' => $date,
+
                 'is_holiday' => $shift->is_holiday,
 
-                'jam_kerja' =>
-                    !empty($snapshot['segments'])
-                    ? ($snapshot['segments'][0]['clock_in'] ?? '-') . ' - ' . ($snapshot['segments'][0]['clock_out'] ?? '-')
+                'in_device' => $att?->inDevice?->name,
+                'out_device' => $att?->outDevice?->name,
+
+                'in_branch_name' => $att?->inBranch?->name,
+                'out_branch_name' => $att?->outBranch?->name,
+
+                'jam_kerja' => $segment
+                    ? ($segment['clock_in'] ?? '-') .
+                    ' - ' .
+                    ($segment['clock_out'] ?? '-')
                     : 'OFF',
 
                 'check_in' => $att?->first_scan_at,
+
                 'check_out' => $att?->last_scan_at,
 
                 'late_minutes' => $att?->late_minutes ?? 0,
+
                 'early_out_minutes' => $att?->early_out_minutes ?? 0,
+
                 'total_work_minutes' => $att?->total_work_minutes ?? 0,
 
-                'status' => $this->resolveStatus($snapshot, $att),
+                'exception_status' => $exception?->status,
+
+                'exception_note' => $exception?->note,
+
+                'status' => $exception?->status
+                    ?? $this->resolveStatus($snapshot, $att),
             ];
+
         })->groupBy('employee_id');
     }
-
     public function getRekap($request)
     {
         $start = Carbon::parse($request->start_date);

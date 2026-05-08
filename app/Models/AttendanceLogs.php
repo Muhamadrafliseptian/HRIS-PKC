@@ -18,4 +18,9 @@ class AttendanceLogs extends Model
     {
         return $this->belongsTo(Branch::class, 'branch', 'id');
     }
+
+    public function devices()
+    {
+        return $this->belongsTo(BiometricDevice::class, 'device_id', 'id');
+    }
 }

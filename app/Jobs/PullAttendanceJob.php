@@ -170,28 +170,13 @@ class PullAttendanceJob implements ShouldQueue
 
                 $logs = $this->pullLogsFromDevice($device);
 
-                Log::info('Logs result', [
-                    'device_id' => $device->id,
-                    'total_logs' => $logs->count(),
-                    'sample' => $logs->take(5)->toArray(),
-                ]);
-
                 if ($logs->isEmpty()) {
-
-                    Log::warning('No logs found', [
-                        'device_id' => $device->id,
-                    ]);
-
                     continue;
                 }
 
                 $this->storeLogs($logs, $device);
 
                 $this->dispatchAttendanceProcess($logs, $device);
-
-                Log::info('Attendance process dispatched', [
-                    'device_id' => $device->id,
-                ]);
             }
 
         } catch (Exception $e) {
@@ -209,7 +194,6 @@ class PullAttendanceJob implements ShouldQueue
 
         return BiometricDevice::where('branch', $this->branchId)->get();
     }
-
     private function pullLogsFromDevice(BiometricDevice $device)
     {
         $response = Http::timeout(600)
@@ -252,17 +236,23 @@ class PullAttendanceJob implements ShouldQueue
             });
         }
 
+        $employeeBranches = Employee::pluck('branch', 'user_id');
+
         return $logs
             ->filter(fn($log) => is_array($log))
-            ->map(function ($log) use ($device) {
+            ->map(function ($log) use ($device, $employeeBranches) {
+
+                $userId = $log['user_id'] ?? null;
 
                 return [
-                    'user_id' => $log['user_id'] ?? null,
+                    'user_id' => $userId,
                     'scan_time' => $log['timestamp'] ?? null,
-                    'branch' => $device->branch,
-                    // 'device_branch' => $device->branch,
+
+                    'branch' => $employeeBranches[$userId] ?? $device->branch,
+
                     'device_id' => $device->id,
                     'device_ip' => $device->ip_address,
+
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

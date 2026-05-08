@@ -120,14 +120,7 @@
                         <td>{{ \Carbon\Carbon::parse($log->scan_time)->format('H:i:s') }}</td>
 
                         <td>
-                            {{
-                    optional($log->dtbiouser)->biometricUser
-                    ? $log->dtbiouser->biometricUser
-                        ->pluck('device.name')
-                        ->filter()
-                        ->join(', ')
-                    : '-'
-                                    }}
+                            {{ optional($log->devices)->name ?? '-' }} - {{ optional($log->devices->dtbranch)->name ?? '-' }}
                         </td>
 
                         <td>

@@ -9,6 +9,10 @@ function IndexPreview() {
 
   const [data, setData] = useState([]);
 
+  console.log('====================================');
+  console.log(data);
+  console.log('====================================');
+
   useEffect(() => {
     if (!logs) return;
 
@@ -39,18 +43,8 @@ function IndexPreview() {
     },
     {
       title: "Devices",
-      render: (data) => {
-        const devices =
-          data.dtbiouser?.biometric_user
-            ?.map((u) => u.device?.name)
-            ?.filter(Boolean) || [];
-    
-        return (
-          <p className="tableSetUp">
-            {devices.length ? devices.join(", ") : "-"}
-          </p>
-        );
-      },
+      render: (row) =>
+        row.devices?.name || "-",
     },
     {
       title: "Branch",
