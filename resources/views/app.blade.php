@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preload" as="style"
         href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/iconfont/tabler-icons.min.css"
         onload="this.onload=null;this.rel='stylesheet'">

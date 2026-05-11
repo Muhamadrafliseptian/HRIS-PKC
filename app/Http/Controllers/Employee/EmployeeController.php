@@ -64,6 +64,8 @@ class EmployeeController extends Controller
                 'status' => $status,
                 'services' => $service,
                 'devices' => $device,
+                'selected_key' => 'employee',
+                'open_key' => ''
             ];
 
             return Inertia::render('Employee/Index', $response);

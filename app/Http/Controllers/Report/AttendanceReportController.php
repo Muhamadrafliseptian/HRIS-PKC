@@ -57,7 +57,9 @@ class AttendanceReportController extends Controller
                 'branchs' => $branchs,
                 'categories' => $category,
                 'services' => $service,
-                'devices' => $device
+                'devices' => $device,
+                'open_key' => 'report',
+                'selected_key' => 'report-attendance'
             ];
 
             return Inertia::render('Report/Attendance/Log/Index', $response);

@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import Main from '../../layout/Main';
-import { readBranch } from '../../services/api/branch/branch';
-import "../../../css/main.css"
+import Main from '../../../../layout/Main';
+import "../../../../../css/main.css"
 import { Table, Tag } from 'antd';
 import { Head } from '@inertiajs/react';
+import { readEmployeeStatus } from '../../../../services/api/employee/employee';
 
 function Index() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    readAllBranch();
+    readEmployee();
   }, []);
 
-  const readAllBranch = async () => {
+  const readEmployee = async () => {
     try {
-      let response = await readBranch();
-      if (response.status && response.data.params.branchs) {
-        setData(response.data.params.branchs);
+      let response = await readEmployeeStatus();
+      if (response.status && response.data.params.status) {
+        setData(response.data.params.status);
       }
     } catch (err) {
     }
@@ -24,21 +24,15 @@ function Index() {
 
   const columns = [
     {
-      title: 'Unit Kerja',
+      title: 'Status Karyawan',
       dataIndex: 'name',
       key: 'name',
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (status ? <Tag color="green">Aktif</Tag> : <Tag color="red">Nonaktif</Tag>),
     },
   ];
 
   return (
     <div>
-      <Head title='Unit kerja' />
+      <Head title='Status Karyawan' />
       <Table
         columns={columns}
         dataSource={data}

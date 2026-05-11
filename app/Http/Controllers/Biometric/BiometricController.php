@@ -54,7 +54,9 @@ class BiometricController extends Controller
                 'branchs' => $branchs,
                 'categories' => $category,
                 'status' => $status,
-                'devices' => $device
+                'devices' => $device,
+                'selected_key' => 'biometric-users',
+                'open_key' => 'biometric'
             ];
 
             return Inertia::render('Biometric/Index', $response);

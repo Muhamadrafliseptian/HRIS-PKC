@@ -7,6 +7,8 @@ use App\Http\Controllers\Branch\BranchController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Devices\DevicesController;
 use App\Http\Controllers\Employee\EmployeeController;
+use App\Http\Controllers\Employee\EmployeeServicesController;
+use App\Http\Controllers\Employee\EmployeeStatusController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\Report\AttendanceReportController;
 use App\Http\Controllers\Setting\UserController;
@@ -70,6 +72,16 @@ Route::middleware(['throttle:120,1', 'maintenance'])->group(function () {
             Route::prefix('branch')->middleware('permission:branch')->group(function () {
                 Route::get("/", [BranchController::class, 'index']);
                 Route::post("read", [BranchController::class, 'read']);
+            });
+            Route::prefix('employee')->group(function () {
+                Route::prefix('services')->middleware('permission:employee-services')->group(function () {
+                    Route::get("/", [EmployeeServicesController::class, 'index']);
+                    Route::post("read", [EmployeeServicesController::class, 'read']);
+                });
+                Route::prefix('status')->middleware('permission:employee-status')->group(function () {
+                    Route::get("/", [EmployeeStatusController::class, 'index']);
+                    Route::post("read", [EmployeeStatusController::class, 'read']);
+                });
             });
         });
         Route::prefix("employee")->middleware('permission:employee')->group(function () {

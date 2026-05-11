@@ -83,8 +83,26 @@ class MenuSeeder extends Seeder
                         'ordering' => 1,
                         'is_active' => 1,
                         'icon' => 'branch',
-                        'label' => 'Branch',
+                        'label' => 'Unit Kerja',
                         'url' => '/master/branch',
+                        'childrens' => []
+                    ],
+                    [
+                        'key' => 'employee-services',
+                        'ordering' => 2,
+                        'is_active' => 1,
+                        'icon' => 'employee_services',
+                        'label' => 'Unit Pelayanan',
+                        'url' => '/master/employee/services',
+                        'childrens' => []
+                    ],
+                    [
+                        'key' => 'employee-status',
+                        'ordering' => 3,
+                        'is_active' => 1,
+                        'icon' => 'services',
+                        'label' => 'Status Karyawan',
+                        'url' => '/master/employee/status',
                         'childrens' => []
                     ],
                 ]

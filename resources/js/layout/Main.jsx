@@ -6,13 +6,12 @@ import HeaderLayout from "./HeaderLayout";
 import FooterLayout from "./FooterLayout";
 import { getMenu } from "../services/api/menu";
 import Swal from "sweetalert2";
+import { useResponsive } from "../Helpers/ResponsiveHelpers";
 
 const { Content } = Layout;
-const { useBreakpoint } = Grid;
 
 export default function Main({ children }) {
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const { isMobile } = useResponsive()
   const [collapsed, setCollapsed] = useState(isMobile);
   const [menus, setMenus] = useState([]);
 
@@ -61,16 +60,18 @@ export default function Main({ children }) {
           isMobile={isMobile}
         />
 
-        <Content style={{ margin: "16px" }}>
+        <Content style={{ margin: isMobile ? "8px" : "16px", }}>
           <div
             style={{
-              padding: "16px",
+              padding: isMobile ? "12px" : "16px",
+              minHeight: "100%",
+              background: "#fff",
+              borderRadius: "8px",
             }}
           >
             {children}
           </div>
         </Content>
-
         <FooterLayout />
       </Layout>
     </Layout>

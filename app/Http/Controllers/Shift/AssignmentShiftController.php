@@ -77,7 +77,9 @@ class AssignmentShiftController extends Controller
                 'status_employees' => $statusEmployee,
                 'shift_categories' => $shiftCategory,
                 'services' => $services,
-                'periods' => $periods
+                'periods' => $periods,
+                'open_key' => 'manage-shift',
+                'selected_key' => 'manage-shift-assign'
             ];
 
             return Inertia::render('Shift/Assign/IndexAssignmentShift', $response);

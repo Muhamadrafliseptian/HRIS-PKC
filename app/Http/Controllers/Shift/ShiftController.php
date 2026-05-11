@@ -36,7 +36,9 @@ class ShiftController extends Controller
 
         $response = [
             'branchs' => $branchs,
-            'status' => $status
+            'status' => $status,
+            'open_key' => 'manage-shift',
+            'selected_key' => 'manage-shift-master'
         ];
 
         return Inertia::render('Shift/Master/Index', $response);

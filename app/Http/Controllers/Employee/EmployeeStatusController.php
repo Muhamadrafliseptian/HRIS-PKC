@@ -1,19 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Branch;
+namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
+use App\Models\EmployeeStatus;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class BranchController extends Controller
+class EmployeeStatusController extends Controller
 {
+    //
     public function index()
     {
         try {
-            return Inertia::render("Branch/Index", [
+            return Inertia::render("Master/Employee/Status/Index", [
                 'open_key' => 'master',
-                'selected_key' => 'branch',
+                'selected_key' => 'employee-status',
             ]);
         } catch (err) {
 
@@ -23,11 +25,10 @@ class BranchController extends Controller
     public function read()
     {
         try {
-            $branchs = Branch::with(['dtconfig', 'dtprovince', 'dtcity', 'dtdistrict', 'dtvillage'])
-                ->get();
+            $services = EmployeeStatus::get();
 
             $response = [
-                'branchs' => $branchs
+                'status' => $services
             ];
 
             return successHandler($response);
@@ -35,5 +36,4 @@ class BranchController extends Controller
 
         }
     }
-
 }

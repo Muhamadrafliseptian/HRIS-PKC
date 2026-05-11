@@ -179,7 +179,16 @@ class PullAttendanceJob implements ShouldQueue
                 $this->dispatchAttendanceProcess($logs, $device);
             }
 
+            Cache::put('pull_attendance_status', [
+                'state' => 'done',
+                'message' => 'success'
+            ], now()->addMinutes(1));
+
         } catch (Exception $e) {
+            Cache::put('pull_attendance_status', [
+                'state' => 'failed',
+                'message' => $e->getMessage()
+            ], now()->addMinutes(10));
             throw $e;
         }
     }
@@ -303,5 +312,7 @@ class PullAttendanceJob implements ShouldQueue
                 date: $date
             );
         }
+
+
     }
 }

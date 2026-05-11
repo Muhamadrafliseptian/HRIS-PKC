@@ -60,11 +60,13 @@ function Index() {
 
         const res = await checkPullStatus();
 
-        console.log(res.data);
-
         const status =
           res.data?.params?.status ||
           res.data?.status;
+
+          console.log('====================================');
+          console.log(status);
+          console.log('====================================');
 
         const messageText =
           res.data?.params?.message ||

@@ -23,10 +23,10 @@ class UserController extends Controller
             ];
         });
         $response = [
-            'open_key' => 'setting',
-            'selected_key' => 'users',
             'menus' => $menus,
             'roles' => $roles,
+            'open_key' => 'setting',
+            'selected_key' => 'setting-users',
         ];
 
         return Inertia::render('Users/Index', $response);

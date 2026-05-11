@@ -23,3 +23,19 @@ export const importEmployee = (data = null) => {
     });
     return Promise.resolve(request);
 }
+
+export const readEmployeeService = (data = null) => {
+    let request = axios({
+        headers: { "Accept": "application/json" },
+        method: "post", data: data, url: window.origin + '/master/employee/services/read'
+    });
+    return Promise.resolve(request);
+}
+
+export const readEmployeeStatus = (data = null) => {
+    let request = axios({
+        headers: { "Accept": "application/json" },
+        method: "post", data: data, url: window.origin + '/master/employee/status/read'
+    });
+    return Promise.resolve(request);
+}

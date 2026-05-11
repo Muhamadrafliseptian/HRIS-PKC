@@ -34,6 +34,8 @@ class DevicesController extends Controller
 
         $response = [
             'branchs' => $branchs,
+            'selected_key' => 'biometric-devices',
+            'open_key' => 'biometric',
             'categories' => $category
         ];
 

@@ -37,14 +37,20 @@ class AuthController extends Controller
             ]
         );
 
-        if (!($verify->json('success'))) {
+        $response = $verify->json();
+
+        if (!($response['success'] ?? false)) {
+
+            $errors = $response['error-codes'] ?? [];
+
             return back()->withErrors([
-                'global' => 'Captcha tidak valid',
+                'global' => 'Captcha gagal diverifikasi: ' . implode(', ', $errors),
             ]);
         }
 
         if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
+
             return redirect()->route('dashboard');
         }
 
@@ -52,6 +58,7 @@ class AuthController extends Controller
             'global' => 'Email atau password salah',
         ]);
     }
+
     public function logout(Request $request)
     {
         try {

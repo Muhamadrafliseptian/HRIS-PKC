@@ -1,6 +1,9 @@
-import React from "react";
-import { Layout, Menu, Typography } from "antd";
-import { router, usePage } from "@inertiajs/react";
+import React, { useState, useEffect } from "react";
+import { Layout, Menu } from "antd";
+const { Sider } = Layout;
+
+import { Link, usePage } from "@inertiajs/react";
+
 import {
   DashboardOutlined,
   ScheduleOutlined,
@@ -15,126 +18,187 @@ import {
   UserAddOutlined,
   BarChartOutlined,
   SettingFilled,
-  TeamOutlined
+  TeamOutlined,
+  DeploymentUnitOutlined,
+  SolutionOutlined,
 } from "@ant-design/icons";
 
-const { Sider } = Layout;
-const { Text } = Typography;
+import { useResponsive } from "@/Helpers/ResponsiveHelpers";
 
-export default function SidebarLayout({ collapsed, menus = [] }) {
-  const { url } = usePage();
+function SidebarLayout(props) {
+  const { isMobile } = useResponsive();
 
-  const iconMap = {
-    dashboard: <DashboardOutlined />,
-    attendance: <ScheduleOutlined />,
-    employee: <IdcardOutlined />,
-    biometric: <ScanOutlined />,
-    users: <UserOutlined />,
-    devices: <LaptopOutlined />,
-    master: <ApartmentOutlined />,
-    branch: <HomeOutlined />,
-    shift: <CalendarOutlined />,
-    shift_master: <ClockCircleOutlined />,
-    shift_assign: <UserAddOutlined />,
-    report: <BarChartOutlined />,
-    report_attendance: <TeamOutlined />,
-    setting: <SettingFilled />,
-    setting_users: <UserOutlined />,
-  };
+  const [menus, setMenus] = useState([]);
+  const [selectedKey, setSelectedKey] = useState([]);
+  const [openKey, setOpenKey] = useState([]);
 
-  const renderIcon = (icon) => {
-    return iconMap[icon] || <DashboardOutlined />;
-  };
+  const pages = usePage().props;
 
-  const mapMenu = (menus) => {
-    return menus.map((m) => ({
-      key: `menu-${m.id}`,
-      label: m.label,
-      icon: renderIcon(m.icon),
-      url: m.url,
-      children:
-        m.childs && m.childs.length > 0
-          ? m.childs.map((c) => ({
-              key: `menu-${c.id}`,
-              label: c.label,
-              icon: renderIcon(c.icon),
-              url: c.url,
-            }))
-          : undefined,
-    }));
-  };
+  const getIcon = (icon) => {
+    switch (icon) {
+      case "dashboard":
+        return <DashboardOutlined />;
 
-  const mappedMenus = mapMenu(menus);
+      case "attendance":
+        return <ScheduleOutlined />;
 
-  const findKeyByUrl = (menus, url) => {
-    for (let m of menus) {
-      if (m.url === url) return m.key;
-      if (m.children) {
-        for (let c of m.children) {
-          if (c.url === url) return c.key;
-        }
-      }
+      case "employee":
+        return <IdcardOutlined />;
+
+      case "biometric":
+        return <ScanOutlined />;
+
+      case "users":
+        return <UserOutlined />;
+
+      case "devices":
+        return <LaptopOutlined />;
+
+      case "master":
+        return <ApartmentOutlined />;
+
+      case "branch":
+        return <HomeOutlined />;
+
+      case "employee_services":
+        return <DeploymentUnitOutlined />;
+
+      case "services":
+        return <SolutionOutlined />;
+
+      case "shift":
+        return <CalendarOutlined />;
+
+      case "shift_master":
+        return <ClockCircleOutlined />;
+
+      case "shift_assign":
+        return <UserAddOutlined />;
+
+      case "report":
+        return <BarChartOutlined />;
+
+      case "report_attendance":
+        return <TeamOutlined />;
+
+      case "setting":
+        return <SettingFilled />;
+
+      case "setting_users":
+        return <UserOutlined />;
+
+      default:
+        return <DashboardOutlined />;
     }
-    return null;
   };
 
-  const selectedKey = findKeyByUrl(mappedMenus, url);
+  useEffect(() => {
+    if (props.menus.length > 0) {
+      let newMenus = props.menus.map((menu) => ({
+        icon: getIcon(menu.icon),
 
-  // ================= FIND MENU BY KEY =================
-  const findMenuByKey = (menus, key) => {
-    for (let m of menus) {
-      if (m.key === key) return m;
-      if (m.children) {
-        const found = findMenuByKey(m.children, key);
-        if (found) return found;
-      }
+        label:
+          menu.url == null ? (
+            <span>{menu.label}</span>
+          ) : (
+            <Link href={menu.url}>{menu.label}</Link>
+          ),
+
+        key: menu.key,
+
+        children:
+          menu.childs.length == 0
+            ? null
+            : menu.childs.map((item) => ({
+              icon: getIcon(item.icon),
+
+              label: <Link href={item.url}>{item.label}</Link>,
+
+              key: item.key,
+            })),
+      }));
+
+      setMenus(newMenus);
     }
-    return null;
+  }, [props.menus]);
+
+  useEffect(() => {
+    if (pages.open_key) {
+      setOpenKey([pages.open_key]);
+    }
+
+    if (pages.selected_key) {
+      setSelectedKey([pages.selected_key]);
+    }
+  }, [pages.open_key, pages.selected_key]);
+
+  const handleOpenChange = (keys) => {
+    setOpenKey(keys);
+  };
+
+  const siderStyle = {
+    overflow: "auto",
+    height: "100vh",
+    position: "sticky",
+    insetInlineStart: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
   };
 
   return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={collapsed}
-      style={{
-        overflow: "auto",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-      }}
-    >
-      {/* HEADER */}
-      <div
+    <>
+      <Sider
+        width={250}
+        collapsedWidth={0}
+        trigger={null}
+        collapsible
+        collapsed={props.collapsed}
         style={{
-          height: "70px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#fff",
-          fontWeight: "bold",
+          ...siderStyle,
+          background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
+          boxShadow: "2px 0 12px rgba(0,0,0,0.15)",
         }}
       >
-        {collapsed ? (
-          <Text style={{ color: "#fff" }}>PKC</Text>
-        ) : (
-          "PKC Kebon Jeruk"
-        )}
-      </div>
+        {/* LOGO */}
+        <div
+          style={{
+            width: "100%",
+            height: "80px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <img
+            src={window.origin + "/images/logo.png"}
+            style={{
+              width: "auto",
+              height: "80px",
+              objectFit: "contain",
+            }}
+          />
+        </div>
 
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={selectedKey ? [selectedKey] : []}
-        items={mappedMenus}
-        onClick={({ key }) => {
-          const menu = findMenuByKey(mappedMenus, key);
-
-          if (menu?.url) {
-            router.visit(menu.url);
-          }
-        }}
-      />
-    </Sider>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={selectedKey}
+          openKeys={openKey}
+          onOpenChange={handleOpenChange}
+          items={menus}
+          style={{
+            background: "transparent",
+            borderRight: 0,
+            marginTop: "8px",
+          }}
+        />
+      </Sider>
+    </>
   );
 }
+
+export default SidebarLayout;

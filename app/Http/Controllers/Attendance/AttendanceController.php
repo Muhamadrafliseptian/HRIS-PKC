@@ -54,6 +54,8 @@ class AttendanceController extends Controller
                 'status' => $status,
                 'services' => $services,
                 'periods' => $months,
+                'selected_key' => 'attendance',
+                'open_key' => ''
             ]);
 
         } catch (Exception $err) {
@@ -66,7 +68,6 @@ class AttendanceController extends Controller
         try {
             $job = PullAttendanceJob::dispatch($request->branch, $request->periode, $request->employee_services);
 
-            // Cache::put('pull_attendance_status', 'processing', now()->addMinutes(10));
             Cache::put('pull_attendance_status', [
                 'state' => 'processing',
                 'message' => null
@@ -244,38 +245,8 @@ class AttendanceController extends Controller
             'attendance' => $attendance,
         ];
     }
-
-    // private function mapDaily($date, $empAtt, $empShift, $empException)
-    // {
-    //     $exception = $empException->first(
-    //         fn($ex) =>
-    //         $date >= $ex->start_date && $date <= $ex->end_date
-    //     );
-
-    //     if ($exception) {
-    //         return [
-    //             [
-    //                 'type' => 'exception',
-    //                 'status' => $exception->status,
-    //                 'note' => $exception->note,
-    //             ]
-    //         ];
-    //     }
-
-    //     $dayRecords = $empAtt->where('date', $date)->values();
-
-    //     if ($dayRecords->isEmpty()) {
-    //         return [];
-    //     }
-
-    //     return $dayRecords->map(function ($rec) use ($date, $empShift) {
-    //         return $this->transformAttendance($rec, $date, $empShift);
-    //     })->toArray();
-    // }
-
     private function mapDaily($date, $empAtt, $empShift, $empException)
     {
-        // ================= EXCEPTION =================
         $exception = $empException->first(
             fn($ex) => $date >= $ex->start_date && $date <= $ex->end_date
         );
@@ -290,7 +261,6 @@ class AttendanceController extends Controller
             ];
         }
 
-        // ================= ATTENDANCE =================
         $dayRecords = $empAtt->where('date', $date)->values();
 
         if ($dayRecords->isNotEmpty()) {
@@ -299,9 +269,8 @@ class AttendanceController extends Controller
             })->toArray();
         }
 
-        // ================= SHIFT (OFF / ALPHA) =================
         $shift = $empShift->first(function ($s) use ($date) {
-            return \Carbon\Carbon::parse($s->date)->toDateString() === $date;
+            return Carbon::parse($s->date)->toDateString() === $date;
         });
 
         if ($shift && $shift->shift_snapshot) {
@@ -312,7 +281,6 @@ class AttendanceController extends Controller
 
             $code = strtoupper($snapshot['code'] ?? '');
 
-            // OFF
             if ($code === 'OFF') {
                 return [
                     [
@@ -322,7 +290,6 @@ class AttendanceController extends Controller
                 ];
             }
 
-            // ADA SHIFT TAPI TIDAK HADIR = ALPHA
             return [
                 [
                     'type' => 'alpha',
