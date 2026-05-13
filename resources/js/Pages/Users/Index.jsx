@@ -4,10 +4,10 @@ import { Breadcrumb, Card, Table, Dropdown, Tag, Row, Form, Col } from "antd";
 import { Head } from "@inertiajs/react";
 import { usePage } from "@inertiajs/react";
 import "../../../css/main.css";
-import { showError} from "../../Components/Alert";
-import { readUsers } from "../../Services/api/users/users";
+import { showError} from "../../components/Alert";
+import { readUsers } from "../../services/api/users/users";
 import Permission from "./Modals/Permission";
-import { PrimaryButton } from "../../Components/Button";
+import { PrimaryButton } from "../../components/Button";
 import { FormSearch, FormSelect } from "../../Components/Form";
 
 function Index() {

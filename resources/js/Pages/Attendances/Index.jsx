@@ -64,10 +64,6 @@ function Index() {
           res.data?.params?.status ||
           res.data?.status;
 
-          console.log('====================================');
-          console.log(status);
-          console.log('====================================');
-
         const messageText =
           res.data?.params?.message ||
           res.data?.message;
