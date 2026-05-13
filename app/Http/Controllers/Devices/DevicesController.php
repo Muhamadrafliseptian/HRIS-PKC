@@ -181,74 +181,163 @@ class DevicesController extends Controller
         ]);
     }
 
+    // public function checkDevices($id)
+    // {
+    //     $device = BiometricDevice::with(['dtbranch', 'category'])
+    //         ->findOrFail($id);
+
+    //     $response = [
+    //         'id' => $device->id,
+    //         'device_name' => $device->name,
+    //         'ip' => $device->ip_address,
+    //         'port' => $device->port,
+    //         'branch' => $device->dtbranch?->name,
+    //         'category' => $device->category?->name,
+    //     ];
+
+    //     if (!$device->ip_address || !$device->port) {
+    //         return successHandler(array_merge($response, [
+    //             'status' => 'no_config',
+    //         ]));
+    //     }
+
+    //     try {
+    //         $res = Http::timeout(10)
+    //             ->withHeaders([
+    //                 'x-api-key' => env('ZK_API_KEY')
+    //             ])
+    //             ->get('http://127.0.0.1:8001/device-time', [
+    //                 'ip' => $device->ip_address,
+    //                 'port' => $device->port,
+    //             ]);
+
+    //         if (!$res->successful()) {
+    //             return successHandler(array_merge($response, [
+    //                 'status' => 'offline',
+    //             ]));
+    //         }
+
+    //         // $json = $res->json();
+
+    //         $raw = $res->body();
+    //         $json = json_decode($raw, true);
+
+    //         // if (!$json['success']) {
+    //         if (($json['success'] ?? false) !== true) {
+    //             return successHandler(array_merge($response, [
+    //                 'status' => 'offline',
+    //             ]));
+    //         }
+
+    //         return successHandler(array_merge($response, [
+    //             'status' => 'online',
+    //             'device_time' => $json['after'] ?? null,
+    //             'server_time' => $json['server_time'] ?? null,
+    //             'difference' => $json['difference_after'] ?? null,
+    //             'device_info' => $json['data'] ?? null,
+    //             'synced' => $json['synced'] ?? null,
+
+    //             // 👇 TAMBAHAN DEBUG PYTHON RESPONSE
+    //             'python_raw_response' => $raw,
+    //             'python_decoded' => $json,
+    //         ]));
+
+    //     } catch (\Exception $e) {
+    //         return successHandler(array_merge($response, [
+    //             'status' => 'offline',
+    //             'error' => $e->getMessage(),
+    //         ]));
+    //     }
+    // }
+
     public function checkDevices($id)
-    {
-        $device = BiometricDevice::with(['dtbranch', 'category'])
-            ->findOrFail($id);
+{
+    $device = BiometricDevice::with(['dtbranch', 'category'])
+        ->findOrFail($id);
 
-        $response = [
-            'id' => $device->id,
-            'device_name' => $device->name,
-            'ip' => $device->ip_address,
-            'port' => $device->port,
-            'branch' => $device->dtbranch?->name,
-            'category' => $device->category?->name,
-        ];
+    $response = [
+        'id' => $device->id,
+        'device_name' => $device->name,
+        'ip' => $device->ip_address,
+        'port' => $device->port,
+        'branch' => $device->dtbranch?->name,
+        'category' => $device->category?->name,
+    ];
 
-        if (!$device->ip_address || !$device->port) {
+    // ❌ no config
+    if (!$device->ip_address || !$device->port) {
+        return successHandler(array_merge($response, [
+            'status' => 'no_config',
+        ]));
+    }
+
+    try {
+        $res = Http::timeout(10)
+            ->withHeaders([
+                'x-api-key' => env('ZK_API_KEY')
+            ])
+            ->get('http://127.0.0.1:8001/device-time', [
+                'ip' => $device->ip_address,
+                'port' => $device->port,
+            ]);
+
+        // ❌ HTTP level failure
+        if (!$res->successful()) {
             return successHandler(array_merge($response, [
-                'status' => 'no_config',
+                'status' => 'offline',
+                'error' => 'HTTP request failed',
+                'python_raw_response' => $res->body(),
             ]));
         }
 
-        try {
-            $res = Http::timeout(10)
-                ->withHeaders([
-                    'x-api-key' => env('ZK_API_KEY')
-                ])
-                ->get('http://127.0.0.1:8001/device-time', [
-                    'ip' => $device->ip_address,
-                    'port' => $device->port,
-                ]);
+        // 🔍 decode safely
+        $raw = $res->body();
+        $json = json_decode($raw, true);
 
-            if (!$res->successful()) {
-                return successHandler(array_merge($response, [
-                    'status' => 'offline',
-                ]));
-            }
-
-            // $json = $res->json();
-
-            $raw = $res->body();
-            $json = json_decode($raw, true);
-
-            // if (!$json['success']) {
-            if (($json['success'] ?? false) !== true) {
-                return successHandler(array_merge($response, [
-                    'status' => 'offline',
-                ]));
-            }
-
+        // ❌ invalid JSON
+        if (!$json) {
             return successHandler(array_merge($response, [
-                'status' => 'online',
-                'device_time' => $json['after'] ?? null,
-                'server_time' => $json['server_time'] ?? null,
-                'difference' => $json['difference_after'] ?? null,
-                'device_info' => $json['data'] ?? null,
-                'synced' => $json['synced'] ?? null,
+                'status' => 'offline',
+                'error' => 'Invalid JSON from Python',
+                'python_raw_response' => $raw,
+            ]));
+        }
 
-                // 👇 TAMBAHAN DEBUG PYTHON RESPONSE
+        /**
+         * ✅ CORE LOGIC (NO SUCCESS DEPENDENCY)
+         * anggap online kalau ada data device_time / after
+         */
+        $deviceTime = $json['device_time'] ?? $json['after'] ?? null;
+
+        if (!$deviceTime) {
+            return successHandler(array_merge($response, [
+                'status' => 'offline',
                 'python_raw_response' => $raw,
                 'python_decoded' => $json,
             ]));
-
-        } catch (\Exception $e) {
-            return successHandler(array_merge($response, [
-                'status' => 'offline',
-                'error' => $e->getMessage(),
-            ]));
         }
+
+        // ✅ ONLINE RESPONSE
+        return successHandler(array_merge($response, [
+            'status' => 'online',
+            'device_time' => $deviceTime,
+            'server_time' => $json['server_time'] ?? null,
+            'difference' => $json['difference_after'] ?? null,
+            'device_info' => $json['data'] ?? $json,
+            'synced' => $json['synced'] ?? null,
+
+            // 🔥 DEBUG (optional, bisa dihapus nanti)
+            'python_raw_response' => $raw,
+            'python_decoded' => $json,
+        ]));
+
+    } catch (\Throwable $e) {
+        return successHandler(array_merge($response, [
+            'status' => 'offline',
+            'error' => $e->getMessage(),
+        ]));
     }
+}
 
     private function isReachable($ip, $port, $timeout = 1)
     {
