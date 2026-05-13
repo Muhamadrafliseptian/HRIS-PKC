@@ -217,7 +217,10 @@ class DevicesController extends Controller
                 ]));
             }
 
-            $json = $res->json();
+            // $json = $res->json();
+
+            $raw = $res->body();
+            $json = json_decode($raw, true);
 
             if (!$json['success']) {
                 return successHandler(array_merge($response, [
@@ -227,11 +230,15 @@ class DevicesController extends Controller
 
             return successHandler(array_merge($response, [
                 'status' => 'online',
-                'device_time' => $json['after'],
-                'server_time' => $json['server_time'],
-                'difference' => $json['difference_after'],
-                'device_info' => $json['data'],
-                'synced' => $json['synced'],
+                'device_time' => $json['after'] ?? null,
+                'server_time' => $json['server_time'] ?? null,
+                'difference' => $json['difference_after'] ?? null,
+                'device_info' => $json['data'] ?? null,
+                'synced' => $json['synced'] ?? null,
+            
+                // 👇 TAMBAHAN DEBUG PYTHON RESPONSE
+                'python_raw_response' => $raw,
+                'python_decoded' => $json,
             ]));
 
         } catch (\Exception $e) {
