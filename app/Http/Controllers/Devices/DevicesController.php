@@ -222,7 +222,8 @@ class DevicesController extends Controller
             $raw = $res->body();
             $json = json_decode($raw, true);
 
-            if (!$json['success']) {
+            // if (!$json['success']) {
+            if (($json['success'] ?? false) !== true) {
                 return successHandler(array_merge($response, [
                     'status' => 'offline',
                 ]));
@@ -235,7 +236,7 @@ class DevicesController extends Controller
                 'difference' => $json['difference_after'] ?? null,
                 'device_info' => $json['data'] ?? null,
                 'synced' => $json['synced'] ?? null,
-            
+
                 // 👇 TAMBAHAN DEBUG PYTHON RESPONSE
                 'python_raw_response' => $raw,
                 'python_decoded' => $json,
