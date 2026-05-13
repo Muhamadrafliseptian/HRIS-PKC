@@ -2,7 +2,7 @@ import { Head, Link } from "@inertiajs/react";
 import React from "react";
 import { Typography } from "antd";
 import ImageError from "../../../../public/images/login/404.png";
-import { PrimaryButton } from "../../Components/Button";
+import { PrimaryButton } from "../../components/Button";
 
 const { Title, Paragraph } = Typography;
 

@@ -8,7 +8,7 @@ import { showError} from "../../components/Alert";
 import { readUsers } from "../../services/api/users/users";
 import Permission from "./Modals/Permission";
 import { PrimaryButton } from "../../components/Button";
-import { FormSearch, FormSelect } from "../../Components/Form";
+import { FormSearch, FormSelect } from "../../components/Form";
 
 function Index() {
     const pages = usePage().props;
