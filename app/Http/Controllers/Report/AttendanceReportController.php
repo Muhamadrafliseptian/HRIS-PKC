@@ -174,6 +174,7 @@ class AttendanceReportController extends Controller
                     ]);
                 })(),
 
+
             'kehadiran' => inertia('Report/Attendance/Transaction/IndexPreview', [
                 'data' => $this->getKehadiranData($request),
                 'start_date' => $request->start_date,
@@ -220,11 +221,13 @@ class AttendanceReportController extends Controller
     {
         $ids = json_decode($request->ids, true);
 
+
         $query = AttendanceLogs::with([
             'dtbiouser.biometricUser.device',
             'dtbiouser.dtbranch',
             'devices'
         ]);
+
 
         if (!empty($ids)) {
             $userIds = Employee::whereIn('id', $ids)
@@ -233,20 +236,20 @@ class AttendanceReportController extends Controller
             $query->whereIn('user_id', $userIds);
         }
 
-        if ($request->branch) {
-            $query->where('branch', $request->branch);
-        }
+        // if ($request->branch) {
+        //     $query->where('branch', $request->branch);
+        // }
 
-        if ($request->device_id) {
-            $query->where('device_id', $request->device_id);
-        }
+        // if ($request->device_id) {
+        //     $query->where('device_id', $request->device_id);
+        // }
 
-        if ($request->start_date && $request->end_date) {
-            $query->whereBetween('scan_time', [
-                $request->start_date,
-                $request->end_date
-            ]);
-        }
+        // if ($request->start_date && $request->end_date) {
+        //     $query->whereBetween('scan_time', [
+        //         $request->start_date,
+        //         $request->end_date
+        //     ]);
+        // }
 
         $logs = $query->orderBy('scan_time', 'asc')->get();
 
